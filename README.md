@@ -1,28 +1,31 @@
-# Osyris CLI
+# constellaXion CLI
 
 A terminal-based chat application for managing your private research datasets.
 
 ## Installation
 
-1. Install the package:
+Install the package:
 
-    ```sh
-    pip install constellaxion
-    ```
+```sh
+pip install constellaxion
+```
 
-2. Run the application:
-
-    ```sh
-    constellaxion hello
-    ```
-
-3. Discover datasets:
-
-    ```sh
-    Find data: <your data query here>
-    ```
 
 ## Usage
+1. Init your model:
 
-- Type your query and press Enter to send.
-- Type `exit` or `quit` to end the session.# constellaXion-cli
+    ```sh
+    constellaXion init
+    ```
+
+2. View Training and Serving configurations:
+
+    ```sh
+    constallaXion job view
+    ```
+
+3. Train, Deploy and Serve model:
+
+    ```sh
+    constallaXion job run
+    ```
