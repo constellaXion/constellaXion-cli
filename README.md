@@ -1,6 +1,6 @@
 # constellaXion CLI
 
-A terminal-based chat application for managing your private research datasets.
+The fastest way to Train, Deploy and Serve Open Source Language Models to your Cloud environment
 
 ## Installation
 

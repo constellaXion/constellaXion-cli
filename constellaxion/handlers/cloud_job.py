@@ -1,5 +1,6 @@
-import os
 import json
+import random
+import string
 from abc import abstractmethod, ABC
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
@@ -28,7 +29,9 @@ class GCPDeployJob(BaseCloudJob):
 
     def create_config(self, model: Model, dataset: Dataset, project_id: str, location: str, service_account: str):
         """Create a JSON configuration file from model and dataset attributes."""
-        bucket_name = "constellaxation-resources"
+        rand_suffix = ''.join(random.choices(
+            string.ascii_lowercase + string.digits, k=4))
+        bucket_name = f"constellaxion-{project_id}"
         job_config = {
             "model": {
                 "model_id": model.id,

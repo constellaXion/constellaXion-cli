@@ -74,7 +74,6 @@ def run_training_job(config):
     bucket_name = config['deploy']['bucket_name']
     script_path = pkg_resources.resource_filename(
         "constellaxion.models.tinyllama_1b.gcp", "lora.py")
-    print(script_path)
     # script_path = model_map[model_name]["lora"]
     infra_config = model_map[model_name]["infra"]
     upload_data_to_gcp(config)
@@ -92,9 +91,9 @@ def run_training_job(config):
         accelerator_count=infra_config['accelerator_count'],
         replica_count=infra_config['replica_count'],
         args=[
-            f"--train-set={config['dataset']['train']}",
-            f"--val-set={config['dataset']['val']}",
-            f"--test-set={config['dataset']['test']}",
+            f"--train-set={config['dataset']['train']['cloud']}",
+            f"--val-set={config['dataset']['val']['cloud']}",
+            f"--test-set={config['dataset']['test']['cloud']}",
             f"--bucket-name={config['deploy']['bucket_name']}",
             f"--model-path={config['deploy']['model_path']}",
             f"--experiments-dir={config['deploy']['experiments_dir']}",

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='constellaxion',
-    version='0.1',
+    version='0.3',
     packages=find_packages(),
     install_requires=[
         'requests',
@@ -19,7 +19,7 @@ setup(
     },
     author='Constellaxion Technologies, Inc.',
     author_email='dev@constellaxion.ai',
-    description='The Constellaxion CLI for managing your laboratory database',
+    description='The constellaXion CLI for managing your laboratory database',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     keywords=["constellaxion", "ai", "ml ops"],
