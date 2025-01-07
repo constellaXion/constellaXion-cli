@@ -1,7 +1,8 @@
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from google.auth import default
 from google.auth.exceptions import RefreshError
+from google.auth.transport.requests import Request
+from google.oauth2.id_token import verify_oauth2_token
 
 
 def create_service_account(project_id):
@@ -18,7 +19,11 @@ def create_service_account(project_id):
         # Get credentials
         credentials, _ = default(
             scopes=["https://www.googleapis.com/auth/cloud-platform"])
+
         iam_service = build('iam', 'v1', credentials=credentials)
+
+        # Extract the email from credentials info
+        user_email = get_logged_in_user_email()
 
         # Create service account
         try:
@@ -42,6 +47,11 @@ def create_service_account(project_id):
 
         # Assign project-level roles
         assign_project_roles(project_id, service_account_email, roles)
+
+        # Allow user to act as the service account
+        assign_impersonation_role(
+            project_id, service_account_email, user_email)
+
         return service_account_email
 
     except RefreshError as e:
@@ -50,6 +60,36 @@ def create_service_account(project_id):
         raise
     except Exception as e:
         print(f"Unexpected error: {e}")
+        raise
+
+
+def get_logged_in_user_email():
+    """
+    Get the email of the currently authenticated user.
+
+    Returns:
+        str: The email of the authenticated user.
+    """
+    try:
+        # Get default credentials
+        credentials, _ = default()
+
+        # Refresh the credentials to get a valid token
+        credentials.refresh(Request())
+
+        # Get the ID token
+        if not hasattr(credentials, "id_token") or not credentials.id_token:
+            raise ValueError("No ID token found in credentials.")
+
+        # Decode the ID token to extract the email
+        id_info = verify_oauth2_token(credentials.id_token, Request())
+        email = id_info.get("email")
+        if not email:
+            raise ValueError("Email not found in ID token.")
+
+        return email
+    except Exception as e:
+        print(f"Error retrieving user email: {e}")
         raise
 
 
@@ -105,3 +145,51 @@ def assign_project_roles(project_id, service_account_email, roles):
     ).execute()
 
     print(f"Roles assigned successfully: {roles}")
+
+
+def assign_impersonation_role(project_id, service_account_email, user_email):
+    """
+    Assign the Service Account User role to a user to allow them to act as the service account.
+
+    Args:
+        project_id (str): GCP Project ID.
+        service_account_email (str): Email of the service account.
+        user_email (str): Email of the user to allow acting as the service account.
+    """
+    credentials, _ = default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    iam_service = build('iam', 'v1', credentials=credentials)
+
+    # Get the current IAM policy for the service account
+    resource = f"projects/{project_id}/serviceAccounts/{service_account_email}"
+    policy = iam_service.projects().serviceAccounts(
+    ).getIamPolicy(resource=resource).execute()
+
+    # Check if the user already has the role
+    bindings = policy.get("bindings", [])
+    role = "roles/iam.serviceAccountUser"
+    binding = next((b for b in bindings if b["role"] == role), None)
+    if binding:
+        members = binding.get("members", [])
+        if f"user:{user_email}" in members:
+            print(
+                f"User {user_email} already has 'roles/iam.serviceAccountUser' on {service_account_email}. Skipping...")
+            return
+        else:
+            binding["members"].append(f"user:{user_email}")
+    else:
+        # Add a new binding for the role
+        bindings.append({
+            "role": role,
+            "members": [f"user:{user_email}"]
+        })
+
+    # Update the policy with the modified bindings
+    policy["bindings"] = bindings
+    iam_service.projects().serviceAccounts().setIamPolicy(
+        resource=resource, body={"policy": policy}
+    ).execute()
+
+    print(
+        f"User {user_email} granted 'roles/iam.serviceAccountUser' on {service_account_email}.")
