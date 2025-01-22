@@ -5,11 +5,12 @@ model_map = {
         "infra": {
             "container_uri": "europe-docker.pkg.dev/vertex-ai/training/tf-gpu.2-14.py310:latest",
             "requirements": [
-                "trl==0.12.0",
+                "trl",
                 "transformers",
                 "dataset",
                 "peft",
                 "google-cloud-storage"
+                "pythonjsonlogger"
             ],
             "machine_type": "g2-standard-4",
             "accelerator_type": "NVIDIA_L4",

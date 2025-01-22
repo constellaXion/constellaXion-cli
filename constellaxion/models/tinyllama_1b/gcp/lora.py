@@ -1,7 +1,8 @@
 import os
 import argparse
+import inspect
 import pandas as pd
-from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM, SFTConfig
 from transformers import TrainingArguments, AutoModelForCausalLM, AutoTokenizer
 from peft import LoraConfig, TaskType, get_peft_model
 from datasets import Dataset
@@ -85,22 +86,31 @@ model = get_peft_model(model, lora_config)
 model.print_trainable_parameters()
 
 # Prepare data loader
-response_template = "\n### Prediction:"
+response_template = "\n### Response:"
 response_template_ids = tokenizer.encode(
-    response_template, add_special_tokens=False)
+    response_template, add_special_tokens=False)[2:]
 
 collator = DataCollatorForCompletionOnlyLM(
     response_template_ids, tokenizer=tokenizer)
 
-examples = dataset["train"][0]
-encodings = [tokenizer(e) for e in examples]
 
-dataloader = DataLoader(encodings, collate_fn=collator, batch_size=1)
-batch = next(iter(dataloader))
-print(batch.keys())
+def format_prompts(example):
+    output_texts = []
+    for i in range(len(example["prompt"])):
+        text = inspect.cleandoc(
+            f"""
+### Prompt:
+{example["prompt"][i]}
+### Response:
+{example["response"][i]}
+"""
+        )
+        output_texts.append(text)
+    return output_texts
+
 
 # Train Model
-train_args = TrainingArguments(
+train_args = SFTConfig(
     output_dir=OUTPUT_DIR,
     num_train_epochs=1,
     per_device_train_batch_size=4,
@@ -116,7 +126,8 @@ train_args = TrainingArguments(
     warmup_ratio=0.1,
     lr_scheduler_type="constant",
     save_safetensors=True,
-    seed=SEED
+    seed=SEED,
+    max_seq_length=1024
 )
 
 trainer = SFTTrainer(
@@ -125,7 +136,7 @@ trainer = SFTTrainer(
     train_dataset=dataset["train"],
     eval_dataset=dataset["val"],
     tokenizer=tokenizer,
-    max_seq_length=1024,
+    formatting_func=format_prompts,
     data_collator=collator
 )
 
