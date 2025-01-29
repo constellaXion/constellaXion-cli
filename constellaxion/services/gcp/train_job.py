@@ -70,12 +70,12 @@ def create_custom_job_with_experiment_autologging_sample(
 
 
 def run_training_job(config):
-    model_name = config['model']['base_model']
+    base_model = config['model']['base_model']
     bucket_name = config['deploy']['bucket_name']
     script_path = pkg_resources.resource_filename(
         "constellaxion.models.tinyllama_1b.gcp", "lora.py")
-    # script_path = model_map[model_name]["lora"]
-    infra_config = model_map[model_name]["infra"]
+    # script_path = model_map[base_model]["lora"]
+    infra_config = model_map[base_model]["infra"]
     upload_data_to_gcp(config)
     create_custom_job_with_experiment_autologging_sample(
         project=config['deploy']['project_id'],
@@ -84,7 +84,7 @@ def run_training_job(config):
         display_name=config['model']['model_id'],
         script_path=script_path,
         requirements=infra_config['requirements'],
-        container_uri=infra_config['container_uri'],
+        container_uri=infra_config['train_image_uri'],
         service_account=config['deploy']['service_account'],
         machine_type=infra_config['machine_type'],
         accelerator_type=infra_config['accelerator_type'],

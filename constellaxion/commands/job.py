@@ -38,6 +38,20 @@ def run():
                 job.run(config)
 
 
+@job.command(help="Serve a trained model")
+@click.option("--model", required=True, help="Trained Model ID")
+def serve(model: str):
+    """Serve Model"""
+    click.echo(click.style(f"Serving model with ID: {model}", fg="blue"))
+    config = get_job()
+    if config:
+        cloud = config['deploy']['provider']
+        match cloud:
+            case "gcp":
+                job = GCPDeployJob()
+                job.serve(config)
+
+
 @job.command()
 def view():
     """View the status or details of one or more jobs"""

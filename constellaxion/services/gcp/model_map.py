@@ -1,9 +1,11 @@
 model_map = {
     "TinyLlama-1B": {
         "dir": "tinyllama_1b",
+        "namespace": "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
         "lora": "../../models/tinyllama_1b/gcp/lora.py",
         "infra": {
-            "container_uri": "europe-docker.pkg.dev/vertex-ai/training/tf-gpu.2-14.py310:latest",
+            "train_image_uri": "europe-docker.pkg.dev/vertex-ai/training/tf-gpu.2-14.py310:latest",
+            "serve_image_uri": "europe-west2-docker.pkg.dev/constellaxion/serving-images/completion-model:latest",
             "requirements": [
                 "trl",
                 "transformers",
