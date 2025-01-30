@@ -26,6 +26,28 @@ def job():
 
 
 @job.command()
+@click.option("--model", required=True, help="Model ID")
+def prompt(model: str):
+    """Prompt a deployed model"""
+    click.echo(click.style(
+        f"🤖 Hello! Start chatting with {model}", fg="green"))
+
+    while True:
+        config = get_job()
+        if config and config['deploy']['endpoint_path']:
+            click.echo(click.style("\nYou: ", fg="green"), nl=False)
+            prompt = input()
+            if prompt.lower() in ['exit', 'quit']:
+                break
+            job = GCPDeployJob()
+            response = job.prompt(prompt, config)
+            click.echo(click.style(f"\n🤖 {model}: ", fg="green") + response)
+        else:
+            click.echo(click.style(
+                "Trained model not found. Try training and deploying a model first", fg="red"))
+
+
+@job.command()
 def run():
     """Run training job"""
     click.echo(click.style(f"Preparing training job...", fg="blue"))

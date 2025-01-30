@@ -6,6 +6,7 @@ from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.services.gcp.train_job import run_training_job
 from constellaxion.services.gcp.serve_job import run_serving_job
+from constellaxion.services.gcp.prompt_model import send_prompt
 
 
 class BaseCloudJob(ABC):
@@ -29,8 +30,15 @@ class GCPDeployJob(BaseCloudJob):
         run_training_job(config)
 
     def serve(self, config):
-        """Serve GCP Model """
+        """Serve GCP model """
         run_serving_job(config)
+
+    def prompt(self, prompt, config):
+        """Send prompt to model"""
+        endpoint_path = config['deploy']['endpoint_path']
+        location = config['deploy']['location']
+        response = send_prompt(prompt, endpoint_path, location)
+        return response
 
     def create_config(self, model: Model, dataset: Dataset, project_id: str, location: str, service_account: str):
         """Create a JSON configuration file from model and dataset attributes."""
