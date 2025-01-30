@@ -57,6 +57,7 @@ def deploy_model_to_endpoint(model,
     )
 
     print(f"Model deployed to endpoint: {endpoint.resource_name}")
+    return endpoint.resource_name
 
 
 def run_serving_job(config):
@@ -84,5 +85,6 @@ def run_serving_job(config):
     # Register a model
     model = create_model_from_custom_container(model_id, image_uri, env_vars)
     # Deploy model to endpoint
-    deploy_model_to_endpoint(model, model_id,
-                             machine_type, accelerator_type, accelerator_count, replica_count, service_account)
+    endpoint_path = deploy_model_to_endpoint(model, model_id,
+                                             machine_type, accelerator_type, accelerator_count, replica_count, service_account)
+    return endpoint_path

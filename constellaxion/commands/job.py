@@ -30,12 +30,12 @@ def job():
 def prompt(model: str):
     """Prompt a deployed model"""
     click.echo(click.style(
-        f"🤖 Hello! Start chatting with {model}", fg="green"))
+        f"Send a prompt to {model}", fg="yellow"))
 
     while True:
         config = get_job()
         if config and config['deploy']['endpoint_path']:
-            click.echo(click.style("\nYou: ", fg="green"), nl=False)
+            click.echo(click.style("\nPrompt: ", fg="green"), nl=False)
             prompt = input()
             if prompt.lower() in ['exit', 'quit']:
                 break
@@ -44,7 +44,8 @@ def prompt(model: str):
             click.echo(click.style(f"\n🤖 {model}: ", fg="green") + response)
         else:
             click.echo(click.style(
-                "Trained model not found. Try training and deploying a model first", fg="red"))
+                "Error: Trained model not found. Try training and deploying a model first", fg="red"))
+            break
 
 
 @job.command()

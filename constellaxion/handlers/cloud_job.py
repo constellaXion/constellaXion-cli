@@ -31,7 +31,10 @@ class GCPDeployJob(BaseCloudJob):
 
     def serve(self, config):
         """Serve GCP model """
-        run_serving_job(config)
+        endpoint_path = run_serving_job(config)
+        config['deploy']['endpoint_path'] = endpoint_path
+        with open("job.json", "w") as f:
+            json.dump(config, f, indent=4)
 
     def prompt(self, prompt, config):
         """Send prompt to model"""
