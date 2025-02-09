@@ -4,6 +4,7 @@ import string
 from abc import abstractmethod, ABC
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
+from constellaxion.handlers.training import Training
 from constellaxion.services.gcp.train_job import run_training_job
 from constellaxion.services.gcp.serve_job import run_serving_job
 from constellaxion.services.gcp.prompt_model import send_prompt
@@ -43,7 +44,7 @@ class GCPDeployJob(BaseCloudJob):
         response = send_prompt(prompt, endpoint_path, location)
         return response
 
-    def create_config(self, model: Model, dataset: Dataset, project_id: str, location: str, service_account: str):
+    def create_config(self, model: Model, dataset: Dataset, training: Training, project_id: str, location: str, service_account: str):
         """Create a JSON configuration file from model and dataset attributes."""
         bucket_name = f"constellaxion-{project_id}"
         job_config = {
@@ -64,6 +65,10 @@ class GCPDeployJob(BaseCloudJob):
                     "local": dataset.test,
                     "cloud": f"{model.id}/data/test.csv"
                 },
+            },
+            "training": {
+                "epochs": training.epochs,
+                "batch_size": training.batch_size
             },
             "deploy": {
                 "provider": "gcp",

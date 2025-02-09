@@ -3,6 +3,7 @@ import yaml
 import click
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
+from constellaxion.handlers.training import Training
 from constellaxion.handlers.cloud_job import GCPDeployJob
 from constellaxion.services.gcp.iam import create_service_account
 
@@ -45,7 +46,24 @@ def init_dataset(dataset_config):
     return Dataset(train, val, test)
 
 
-def init_job(model: Model, dataset: Dataset, job_config):
+def init_training(training_config):
+    """Initialize the dataset
+
+    Args:
+        dataset_config (dict): Dataset config details
+    """
+    epochs = training_config.get('epochs')
+    batch_size = training_config.get('batch_size')
+    if not epochs:
+        click.echo(
+            f"Error: Missing value, training.epochs in model.yaml file", err=True)
+    if not batch_size:
+        click.echo(
+            f"Error: Missing value, training.batch_size in model.yaml file", err=True)
+    return Training(epochs, batch_size)
+
+
+def init_job(model: Model, dataset: Dataset, training: Training, job_config):
     """Initialize the deployment job definition
 
     Args:
@@ -72,7 +90,7 @@ def init_job(model: Model, dataset: Dataset, job_config):
             click.echo(f"Error: {str(e)}", err=True)
         job = GCPDeployJob()
         # Create job config
-        job.create_config(model, dataset, project_id,
+        job.create_config(model, dataset, training, project_id,
                           location, service_account_email)
 
 
@@ -95,10 +113,12 @@ def init():
             model_config = config.get('model')
             dataset_config = config.get('dataset')
             deploy_config = config.get('deploy')
+            training_config = config.get('training')
             # Init configs
             model = init_model(model_config)
             dataset = init_dataset(dataset_config)
-            init_job(model, dataset, deploy_config)
+            training = init_training(training_config)
+            init_job(model, dataset, training, deploy_config)
             click.echo(
                 click.style("Job Config created. Run 'constellaXion job view' to see details or 'constellaXion job run' to start training your model", fg="green"))
         # Parse values and excecute commands

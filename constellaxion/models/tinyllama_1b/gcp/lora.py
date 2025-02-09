@@ -6,11 +6,16 @@ from trl import SFTTrainer, DataCollatorForCompletionOnlyLM, SFTConfig
 from transformers import TrainingArguments, AutoModelForCausalLM, AutoTokenizer
 from peft import LoraConfig, TaskType, get_peft_model
 from datasets import Dataset
-from torch.utils.data import DataLoader
 from google.cloud import storage
+from transformers.integrations import TensorBoardCallback
+from google.cloud import aiplatform
 
 # Parse cli args
 parser = argparse.ArgumentParser()
+parser.add_argument("--epochs", type=str, required=True,
+                    help="Training epochs")
+parser.add_argument("--batch-size", type=str, required=True,
+                    help="Batch size")
 parser.add_argument("--train-set", type=str, required=True,
                     help="Training set path")
 parser.add_argument("--val-set", type=str, required=True,
@@ -21,11 +26,16 @@ parser.add_argument("--bucket-name", type=str, required=True,
                     help="GCS bucket name")
 parser.add_argument("--model-path", type=str, required=True,
                     help="Model artefacts output path")
+parser.add_argument("--model-id", type=str, required=True,
+                    help="Model ID")
 parser.add_argument("--experiments-dir", type=str, required=True,
                     help="Experiments output path")
-parser.add_argument("--staging-dir", type=str, required=True,
-                    help="Staging path")
-
+parser.add_argument("--location", type=str, required=True,
+                    help="Location")
+parser.add_argument("--project-id", type=str, required=True,
+                    help="Project ID")
+parser.add_argument("--experiment-name", type=str, required=True,
+                    help="Experiment name")
 args = parser.parse_args()
 
 SEED = 42
@@ -36,15 +46,22 @@ PAD_TOKEN = '<pad>'
 LOCAL_MODEL_DIR = './model'
 GCS_BUCKET_NAME = args.bucket_name
 GCS_MODEL_PATH = args.model_path
-TRAIN_CSV = f"gs://{GCS_BUCKET_NAME}/{args.train_set}"
-VAL_CSV = f"gs://{GCS_BUCKET_NAME}/{args.val_set}"
-TEST_CSV = f"gs://{GCS_BUCKET_NAME}/{args.test_set}"
-OUTPUT_DIR = args.experiments_dir
+LOCATION = args.location
+PROJECT_ID = args.project_id
+MODEL_ID = args.model_id
+train_set = f"gs://{GCS_BUCKET_NAME}/{args.train_set}"
+val_set = f"gs://{GCS_BUCKET_NAME}/{args.val_set}"
+test_set = f"gs://{GCS_BUCKET_NAME}/{args.test_set}"
+output_dir = f"gs://{GCS_BUCKET_NAME}/{args.experiments_dir}"
+EPOCHS = args.epochs
+BATCH_SIZE = args.batch_size
+EXPERIMENT_NAME = args.experiment_name
+tensorboard_path = os.environ.get("AIP_TENSORBOARD_LOG_DIR")
 
 # Dataset
-train_df = pd.read_csv(TRAIN_CSV)
-val_df = pd.read_csv(VAL_CSV)
-test_df = pd.read_csv(TEST_CSV)
+train_df = pd.read_csv(train_set)
+val_df = pd.read_csv(val_set)
+test_df = pd.read_csv(test_set)
 
 dataset = {
     "train": Dataset.from_pandas(train_df),
@@ -109,12 +126,20 @@ def format_prompts(example):
     return output_texts
 
 
+# Initialize Vertex AI with experiment tracking
+aiplatform.init(
+    project=PROJECT_ID,
+    location=LOCATION,
+    experiment=EXPERIMENT_NAME,
+    experiment_description="TinyLlama LoRA fine-tuning experiment"
+)
+
 # Train Model
 train_args = SFTConfig(
-    output_dir=OUTPUT_DIR,
-    num_train_epochs=1,
-    per_device_train_batch_size=4,
-    gradient_accumulation_steps=4,
+    output_dir=output_dir,
+    num_train_epochs=int(EPOCHS),
+    per_device_train_batch_size=int(BATCH_SIZE),
+    gradient_accumulation_steps=int(BATCH_SIZE),
     optim="adamw_torch",
     evaluation_strategy="steps",
     eval_steps=0.2,
@@ -127,7 +152,9 @@ train_args = SFTConfig(
     lr_scheduler_type="constant",
     save_safetensors=True,
     seed=SEED,
-    max_seq_length=1024
+    max_seq_length=1024,
+    report_to=["tensorboard"],
+    logging_dir=tensorboard_path
 )
 
 trainer = SFTTrainer(
@@ -137,7 +164,8 @@ trainer = SFTTrainer(
     eval_dataset=dataset["val"],
     tokenizer=tokenizer,
     formatting_func=format_prompts,
-    data_collator=collator
+    data_collator=collator,
+    callbacks=[TensorBoardCallback()]
 )
 
 trainer.train()

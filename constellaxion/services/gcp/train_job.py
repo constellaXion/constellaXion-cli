@@ -5,6 +5,38 @@ from google.cloud import storage
 import pkg_resources
 
 
+def create_vertex_dataset(model_id: str, bucket_name: str, train_set: str, val_set: str, test_set: str, location: str) -> None:
+    """
+    Checks if a default metadata store exists in the project at the specified location.
+    Creates one if it doesn't exist.
+
+    Args:
+        project_id (str): GCP project ID
+        location (str): GCP region (e.g., 'us-central1')
+    """
+    try:
+        # Create GCS paths
+        gcs_paths = [
+            f"gs://{bucket_name}/{train_set}",
+            f"gs://{bucket_name}/{val_set}",
+            f"gs://{bucket_name}/{test_set}"
+        ]
+        
+        # Create dataset without using paths as label values
+        aiplatform.TabularDataset.create(
+            display_name=f"{model_id}-dataset",
+            location=location,
+            gcs_source=gcs_paths,
+            labels={
+                "model_id": model_id
+            }
+        )
+        
+    except Exception as e:
+        print(f"Warning: Error while checking/creating metadata store: {str(e)}")
+        print("Continuing with training...")
+
+
 def upload_data_to_gcp(config: dict):
     """
     Upload dataset to GCP, ensuring the bucket exists.
@@ -38,7 +70,7 @@ def upload_data_to_gcp(config: dict):
     print(f"Uploaded test dataset to {test_blob.name}")
 
 
-def create_custom_job_with_experiment_autologging_sample(
+def create_training_job(
         project: str,
         location: str,
         staging_bucket: str,
@@ -51,10 +83,46 @@ def create_custom_job_with_experiment_autologging_sample(
         accelerator_type: str,
         accelerator_count: int,
         replica_count: int,
+        experiment_name: str,
         args: list[str]
 ) -> None:
     aiplatform.init(project=project, location=location,
                     staging_bucket=staging_bucket)
+    # Get TensorBoard instance
+    tensorboard = aiplatform.Experiment(
+        experiment_name).get_backing_tensorboard_resource()
+    tensorboard_resource_name = tensorboard.gca_resource.name
+    
+    # Extract experiment ID from the resource name
+    experiment = aiplatform.Experiment(experiment_name)
+    experiment_id = experiment.resource_name.split('/')[-1]
+    
+    # Parse the tensorboard resource name to get project ID and tensorboard ID
+    parts = tensorboard_resource_name.split('/')
+    project_number = parts[1]  # Gets the numeric project ID
+    tensorboard_id = parts[-1]
+    
+    # Generate Tensorboard URL in the correct format
+    tensorboard_url = f"https://{location}.tensorboard.googleusercontent.com/experiment/projects+{project_number}+locations+{location}+tensorboards+{tensorboard_id}+experiments+{experiment_id}/#scalars"
+    print(tensorboard_resource_name)
+    # Read existing job.json
+    try:
+        with open('job.json', 'r') as f:
+            job_config = json.load(f)
+    except FileNotFoundError:
+        job_config = {}
+    
+    # Ensure 'training' key exists
+    if 'training' not in job_config:
+        job_config['training'] = {}
+    
+    # Add tensorboard URL to training section
+    job_config['training']['tensorboard_url'] = tensorboard_url
+    
+    # Write updated config back to job.json
+    with open('job.json', 'w') as f:
+        json.dump(job_config, f, indent=4)
+
     job = aiplatform.CustomJob.from_local_script(
         display_name=display_name,
         script_path=script_path,
@@ -64,20 +132,31 @@ def create_custom_job_with_experiment_autologging_sample(
         accelerator_type=accelerator_type,
         accelerator_count=accelerator_count,
         replica_count=replica_count,
-        args=args
+        args=args,
     )
-    job.run(service_account=service_account)
+    job.run(service_account=service_account,
+            tensorboard=tensorboard_resource_name)
 
 
 def run_training_job(config):
     base_model = config['model']['base_model']
     bucket_name = config['deploy']['bucket_name']
+    model_id = config['model']['model_id']
+    train_set = config['dataset']['train']['cloud']
+    val_set = config['dataset']['val']['cloud']
+    test_set = config['dataset']['test']['cloud']
     script_path = pkg_resources.resource_filename(
         "constellaxion.models.tinyllama_1b.gcp", "lora.py")
     # script_path = model_map[base_model]["lora"]
     infra_config = model_map[base_model]["infra"]
+    # Upload data to GCP
     upload_data_to_gcp(config)
-    create_custom_job_with_experiment_autologging_sample(
+    project_id = config['deploy']['project_id']
+    location = config['deploy']['location']
+    experiment_name = f"{config['model']['model_id']}-lora-{config['training']['epochs']}e"
+    # Add this before initializing the experiment
+    create_vertex_dataset(model_id, bucket_name, train_set, val_set, test_set, location)
+    create_training_job(
         project=config['deploy']['project_id'],
         location=config['deploy']['location'],
         staging_bucket=f"gs://{bucket_name}/{config['deploy']['staging_dir']}",
@@ -90,13 +169,19 @@ def run_training_job(config):
         accelerator_type=infra_config['accelerator_type'],
         accelerator_count=infra_config['accelerator_count'],
         replica_count=infra_config['replica_count'],
+        experiment_name=experiment_name,
         args=[
+            f"--epochs={config['training']['epochs']}",
+            f"--batch-size={config['training']['batch_size']}",
             f"--train-set={config['dataset']['train']['cloud']}",
             f"--val-set={config['dataset']['val']['cloud']}",
             f"--test-set={config['dataset']['test']['cloud']}",
-            f"--bucket-name={config['deploy']['bucket_name']}",
+            f"--bucket-name={bucket_name}",
             f"--model-path={config['deploy']['model_path']}",
             f"--experiments-dir={config['deploy']['experiments_dir']}",
-            f"--staging-dir={config['deploy']['staging_dir']}"
+            f"--location={location}",
+            f"--project-id={project_id}",
+            f"--model-id={config['model']['model_id']}",
+            f"--experiment-name={experiment_name}"
         ]
     )

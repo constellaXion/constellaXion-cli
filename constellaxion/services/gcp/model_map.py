@@ -11,8 +11,8 @@ model_map = {
                 "transformers",
                 "dataset",
                 "peft",
-                "google-cloud-storage"
-                "pythonjsonlogger"
+                "google-cloud-storage",
+                "python-json-logger"
             ],
             "machine_type": "g2-standard-4",
             "accelerator_type": "NVIDIA_L4",
