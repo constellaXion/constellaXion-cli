@@ -88,13 +88,28 @@ def create_training_job(
 ) -> None:
     aiplatform.init(project=project, location=location,
                     staging_bucket=staging_bucket)
+    
+    # Try to get existing experiment, create if it doesn't exist
+    try:
+        experiment = aiplatform.Experiment(experiment_name)
+    except Exception:
+        experiment = aiplatform.Experiment.create(experiment_name)
+    
     # Get TensorBoard instance
-    tensorboard = aiplatform.Experiment(
-        experiment_name).get_backing_tensorboard_resource()
+    tensorboard = experiment.get_backing_tensorboard_resource()
+    if tensorboard is None:
+        # Create a new TensorBoard instance if one doesn't exist
+        tensorboard = aiplatform.Tensorboard.create(
+            display_name=f"{experiment_name}-tensorboard",
+            project=project,
+            location=location
+        )
+        # Associate the tensorboard with the experiment
+        experiment.assign_backing_tensorboard(tensorboard)
+    
     tensorboard_resource_name = tensorboard.gca_resource.name
     
     # Extract experiment ID from the resource name
-    experiment = aiplatform.Experiment(experiment_name)
     experiment_id = experiment.resource_name.split('/')[-1]
     
     # Parse the tensorboard resource name to get project ID and tensorboard ID
@@ -105,6 +120,7 @@ def create_training_job(
     # Generate Tensorboard URL in the correct format
     tensorboard_url = f"https://{location}.tensorboard.googleusercontent.com/experiment/projects+{project_number}+locations+{location}+tensorboards+{tensorboard_id}+experiments+{experiment_id}/#scalars"
     print(tensorboard_resource_name)
+    
     # Read existing job.json
     try:
         with open('job.json', 'r') as f:
@@ -155,7 +171,7 @@ def run_training_job(config):
     location = config['deploy']['location']
     experiment_name = f"{config['model']['model_id']}-lora-{config['training']['epochs']}e"
     # Add this before initializing the experiment
-    create_vertex_dataset(model_id, bucket_name, train_set, val_set, test_set, location)
+    create_vertex_dataset(experiment_name, bucket_name, train_set, val_set, test_set, location)
     create_training_job(
         project=config['deploy']['project_id'],
         location=config['deploy']['location'],
@@ -181,7 +197,7 @@ def run_training_job(config):
             f"--experiments-dir={config['deploy']['experiments_dir']}",
             f"--location={location}",
             f"--project-id={project_id}",
-            f"--model-id={config['model']['model_id']}",
+            f"--model-id={model_id}",
             f"--experiment-name={experiment_name}"
         ]
     )
