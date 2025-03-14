@@ -1,20 +1,14 @@
 import os
-import time
-import gcsfs
 import argparse
 import inspect
 import pandas as pd
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM, SFTConfig
-from transformers import TrainingArguments, AutoModelForCausalLM, AutoTokenizer
-from peft import LoraConfig, TaskType, get_peft_model, PeftModel
+from transformers import GenerationConfig, AutoModelForCausalLM, AutoTokenizer
+from peft import LoraConfig, TaskType, get_peft_model
 from datasets import Dataset
 from google.cloud import storage
 from transformers.integrations import TensorBoardCallback
 from google.cloud import aiplatform
-import threading
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from constellaxion_utils.gcs.gcs_uploader import GCSUploaderHandler, ModelManager
 
 # Parse cli args
 parser = argparse.ArgumentParser()
@@ -50,38 +44,19 @@ MODEL_NAME = 'TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T'
 PAD_TOKEN = '<pad>'
 
 LOCAL_MODEL_DIR = './model'
-CHECKPOINT_DIR = './checkpoints'
 GCS_BUCKET_NAME = args.bucket_name
 GCS_MODEL_PATH = args.model_path
 LOCATION = args.location
 PROJECT_ID = args.project_id
 MODEL_ID = args.model_id
-EPOCHS = args.epochs
-BATCH_SIZE = args.batch_size
-EXPERIMENT_NAME = args.experiment_name
-EXPERIMENT_DIR = args.experiments_dir
-tensorboard_path = os.environ.get("AIP_TENSORBOARD_LOG_DIR")
-
 train_set = f"gs://{GCS_BUCKET_NAME}/{args.train_set}"
 val_set = f"gs://{GCS_BUCKET_NAME}/{args.val_set}"
 test_set = f"gs://{GCS_BUCKET_NAME}/{args.test_set}"
-output_dir = f"gs://{GCS_BUCKET_NAME}/{EXPERIMENT_DIR}"
-
-def start_gcs_sync(local_dir, gcs_dir):
-    event_handler = GCSUploaderHandler(local_dir, gcs_dir)
-    observer = Observer()
-    observer.schedule(event_handler, path=local_dir, recursive=True)
-    observer.start()
-    print(f"🚀 Started syncing from {local_dir} to {gcs_dir}")
-
-    # Run indefinitely until stopped
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
-
+output_dir = f"gs://{GCS_BUCKET_NAME}/{args.experiments_dir}"
+EPOCHS = args.epochs
+BATCH_SIZE = args.batch_size
+EXPERIMENT_NAME = args.experiment_name
+tensorboard_path = os.environ.get("AIP_TENSORBOARD_LOG_DIR")
 
 # Dataset
 train_df = pd.read_csv(train_set)
@@ -94,19 +69,12 @@ dataset = {
     "test": Dataset.from_pandas(test_df)
 }
 
-model_manager = ModelManager()
-checkpoint = model_manager.prepare_checkpoint(GCS_BUCKET_NAME, EXPERIMENT_DIR, CHECKPOINT_DIR)
-
-if checkpoint:
-    MODEL_PATH = checkpoint
-else:
-    MODEL_PATH = MODEL_NAME
-
 # Tokenizer
 tokenizer = AutoTokenizer.from_pretrained(
-    MODEL_PATH, add_eos_token=True, use_fast=True)
-tokenizer.add_special_tokens({"pad_token": PAD_TOKEN})
-tokenizer.padding_side = "right"
+    MODEL_NAME, add_eos_token=True, use_fast=True)
+tokenizer.pad_token = tokenizer.eos_token
+# tokenizer.add_special_tokens({"pad_token": PAD_TOKEN})
+# tokenizer.padding_side = "right"
 
 # Model
 model = AutoModelForCausalLM.from_pretrained(
@@ -137,78 +105,66 @@ lora_config = LoraConfig(
 )
 
 model = get_peft_model(model, lora_config)
-
-# if checkpoint:
-#     model.load_state_dict(PeftModel.from_pretrained(model, MODEL_PATH).state_dict())
-#     # model = model.merge_and_unload()
-
 model.print_trainable_parameters()
 
 # Prepare data loader
-# response_template = "\n### Response:"
-response_template = "\n### Prediction:"
+response_template = "\n### Response:"
 response_template_ids = tokenizer.encode(
     response_template, add_special_tokens=False)[2:]
 
 collator = DataCollatorForCompletionOnlyLM(
     response_template_ids, tokenizer=tokenizer)
 
-
-# def format_prompts(example):
-#     text = inspect.cleandoc(
-#             f"""
-# ### Prompt:
-# {example["prompt"]}
-# ### Response:
-# {example["response"]}
-# """
-#     )
-#     return text
-
-def format_prompts(example):
-    text = inspect.cleandoc(
+def format_prompts(example, context_window=3):
+    output_texts = []
+    batch_size = len(example["Prompt"])
+    
+    for i in range(batch_size):
+        # Get the prompt which already includes context
+        prompt = example["Prompt"][i]
+        response = example["Response"][i]
+        
+        # Format the complete text
+        text = inspect.cleandoc(
             f"""
-### Title:
-{example["title"]}
-### Text:
-{example["text"]}
-### Prediction:
-subject: {example["subject"]}
-sentiment: {example["sentiment"]}
+{prompt}
+### Response:
+{response}
 """
-            )
-    return text
-
+        )
+        output_texts.append(text)
+    
+    return output_texts
 
 # Initialize Vertex AI with experiment tracking
 aiplatform.init(
     project=PROJECT_ID,
     location=LOCATION,
     experiment=EXPERIMENT_NAME,
-    experiment_description="TinyLlama LoRA fine-tuning experiment"
+    experiment_description="TinyLlama LoRA fine-tuning experiment (Autoregressive)"
 )
 
 # Train Model
 train_args = SFTConfig(
-    output_dir="./experiments",
+    output_dir=output_dir,
     num_train_epochs=int(EPOCHS),
     per_device_train_batch_size=int(BATCH_SIZE),
-    gradient_accumulation_steps=4,
+    gradient_accumulation_steps=int(BATCH_SIZE),
     optim="adamw_torch",
     evaluation_strategy="steps",
-    logging_steps=50,
+    eval_steps=0.2,
+    logging_steps=10,
     learning_rate=1e-4,
     fp16=True,
-    save_strategy="steps",
-    save_steps=0.1,
+    save_strategy="epoch",
     max_grad_norm=1.0,
     warmup_ratio=0.1,
     lr_scheduler_type="constant",
     save_safetensors=True,
     seed=SEED,
-    max_seq_length=1024,
+    max_seq_length=2048,  # Increased for longer context
     report_to=["tensorboard"],
-    logging_dir=tensorboard_path,
+    logging_dir=tensorboard_path
 )
 
 trainer = SFTTrainer(
@@ -222,19 +178,7 @@ trainer = SFTTrainer(
     callbacks=[TensorBoardCallback()]
 )
 
-# Start the GCS sync in a separate thread
-os.makedirs("./experiments", exist_ok=True)
-sync_thread = threading.Thread(
-    target=start_gcs_sync, args=("./experiments", output_dir), daemon=True
-)
-sync_thread.start()
-
-if checkpoint:
-    trainer.train(resume_from_checkpoint=MODEL_PATH)
-else:
-    # Train model
-    trainer.train()
-
+trainer.train()
 
 def upload_directory_to_gcs(local_path, bucket_name, gcs_path):
     """Upload to GCS"""
@@ -252,7 +196,6 @@ def upload_directory_to_gcs(local_path, bucket_name, gcs_path):
             print(
                 f"Uploaded {local_file_path} to gs://{bucket_name}/{gcs_blob_path}")
 
-
 def save_model_tokenizer_locally(model, tokenizer, save_dir):
     """Save model and tokenizer locally"""
     os.makedirs(save_dir, exist_ok=True)
@@ -260,14 +203,12 @@ def save_model_tokenizer_locally(model, tokenizer, save_dir):
     tokenizer.save_pretrained(save_dir)
     print(f"Model and tokenizer saved locally to {save_dir}")
 
-
 def save_and_upload_model(model, tokenizer):
-    """Saven and upload model"""
+    """Save and upload model"""
     # Save locally
     save_model_tokenizer_locally(model, tokenizer, LOCAL_MODEL_DIR)
 
     # Upload to GCS
     upload_directory_to_gcs(LOCAL_MODEL_DIR, GCS_BUCKET_NAME, GCS_MODEL_PATH)
 
-
-save_and_upload_model(trainer.model, tokenizer)
+save_and_upload_model(trainer.model, tokenizer) 

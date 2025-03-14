@@ -21,11 +21,23 @@ pip install constellaxion
 2. View Training and Serving configurations:
 
     ```sh
-    constallaXion job view
+    constallaXion model view
     ```
 
-3. Train, Deploy and Serve model:
+3. Run training job:
 
     ```sh
-    constallaXion job run
+    constallaXion model train
+    ```
+
+4. Serve model:
+
+    ```sh
+    constallaXion model serve
+    ```
+
+5. Prompt model:
+
+    ```sh
+    constallaXion model prompt
     ```

@@ -20,12 +20,12 @@ def get_job(print=False):
 
 
 @click.group()
-def job():
-    """Manage jobs"""
+def model():
+    """Manage model jobs"""
     pass
 
 
-@job.command()
+@model.command()
 @click.option("--model", required=True, help="Model ID")
 def prompt(model: str):
     """Prompt a deployed model"""
@@ -48,8 +48,8 @@ def prompt(model: str):
             break
 
 
-@job.command()
-def run():
+@model.command()
+def train():
     """Run training job"""
     click.echo(click.style(f"Preparing training job...", fg="blue"))
     config = get_job()
@@ -61,7 +61,7 @@ def run():
                 job.run(config)
 
 
-@job.command(help="Serve a trained model")
+@model.command(help="Serve a trained model")
 @click.option("--model", required=True, help="Trained Model ID")
 def serve(model: str):
     """Serve Model"""
@@ -75,7 +75,7 @@ def serve(model: str):
                 job.serve(config)
 
 
-@job.command()
+@model.command()
 def view():
     """View the status or details of one or more jobs"""
     get_job(print=True)

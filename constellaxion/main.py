@@ -1,7 +1,7 @@
 import click
 from constellaxion.commands.login import login
 from constellaxion.commands.init import init
-from constellaxion.commands.job import job
+from constellaxion.commands.model import model
 
 
 @click.group()
@@ -12,7 +12,7 @@ def cli():
 
 cli.add_command(login)
 cli.add_command(init)
-cli.add_command(job)
+cli.add_command(model)
 
 if __name__ == "__main__":
     cli()

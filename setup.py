@@ -29,5 +29,5 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.10',
-    package_data={"constellaxion": ["models/tinyllama_1b/gcp/*.py"]}
+    package_data={"constellaxion": ["models/tinyllama_1b/gcp/*.py", "services/gcp/*.py"]}
 )
