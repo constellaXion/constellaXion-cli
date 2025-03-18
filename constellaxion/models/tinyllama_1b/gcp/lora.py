@@ -146,6 +146,7 @@ model.print_trainable_parameters()
 
 # Prepare data loader
 # response_template = "\n### Response:"
+# todo: add instruction and response template
 response_template = "\n### Prediction:"
 response_template_ids = tokenizer.encode(
     response_template, add_special_tokens=False)[2:]

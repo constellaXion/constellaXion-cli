@@ -2,16 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='constellaxion',
-    version='0.3.4',
+    version='0.3.2',
     packages=find_packages(),
-    install_requires=[
-        'requests',
-        'rich',
-        'click',
-        "google-api-python-client",
-        "google-auth",
-        "google-auth-httplib2",
-    ],
+    install_requires=open('requirements.txt').read().splitlines(),
     entry_points={
         'console_scripts': [
             'constellaxion=constellaxion.main:cli',

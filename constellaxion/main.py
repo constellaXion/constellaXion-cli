@@ -3,7 +3,6 @@ from constellaxion.commands.login import login
 from constellaxion.commands.init import init
 from constellaxion.commands.model import model
 
-
 @click.group()
 def cli():
     """Constellaxion CLI: Infrastructure deployment for LLMs"""

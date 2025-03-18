@@ -1,4 +1,5 @@
 import os
+import shutil
 import yaml
 import click
 from constellaxion.handlers.model import Model
@@ -6,8 +7,34 @@ from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.training import Training
 from constellaxion.handlers.cloud_job import GCPDeployJob
 from constellaxion.services.gcp.iam import create_service_account
+import pyfiglet
+import random
+import time
+from rich.console import Console
+from rich.text import Text
+from rich.progress import Progress
+from rich.panel import Panel
+from halo import Halo
+import sys
+import subprocess
+
+console = Console()
+
+CONSTELLAXION_LOGO = """\
+░█▀▀░█▀█░█▀█░█▀▀░▀█▀░█▀▀░█░░░█░░░█▀█░█░█░▀█▀░█▀█░█▀█
+░█░░░█░█░█░█░▀▀█░░█░░█▀▀░█░░░█░░░█▀█░▄▀▄░░█░░█░█░█░█
+░▀▀▀░▀▀▀░▀░▀░▀▀▀░░▀░░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀░▀░▀
+"""
 
 
+CXN_LOGO = """\
+ ██████╗██╗  ██╗███╗   ██╗
+██╔════╝╚██╗██╔╝████╗  ██║
+██║      ╚███╔╝ ██╔██╗ ██║
+██║      ██╔██╗ ██║╚██╗██║
+╚██████╗██╔╝ ██╗██║ ╚████║
+ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝
+"""
 def init_model(model_config):
     """Initialize the model
 
@@ -63,7 +90,7 @@ def init_training(training_config):
     return Training(epochs, batch_size)
 
 
-def init_job(model: Model, dataset: Dataset, training: Training, job_config):
+def init_job(job_config, model: Model, dataset: Dataset, training: Training):
     """Initialize the deployment job definition
 
     Args:
@@ -90,8 +117,8 @@ def init_job(model: Model, dataset: Dataset, training: Training, job_config):
             click.echo(f"Error: {str(e)}", err=True)
         job = GCPDeployJob()
         # Create job config
-        job.create_config(model, dataset, training, project_id,
-                          location, service_account_email)
+        job.create_config(model, project_id,
+                          location, service_account_email, dataset, training)
 
 
 @click.command(help="Initialize a new model")
@@ -99,6 +126,14 @@ def init():
     """
     Initialize a new model
     """
+    # Print the logo
+    console.print(Panel(Text(CONSTELLAXION_LOGO, justify="center"), style="#47589B", expand=True))
+
+    # Start loading animation
+    spinner = Halo(spinner='dots')
+    spinner.start()
+
+    # Load the model config
     model_config = os.path.join(os.getcwd(), "model.yaml")
     if not os.path.exists(model_config):
         click.echo(
@@ -109,20 +144,37 @@ def init():
     try:
         with open(model_config, 'r') as file:
             config = yaml.safe_load(file)
+            training = None
+            dataset = None
             # Get configs
             model_config = config.get('model')
-            dataset_config = config.get('dataset')
-            deploy_config = config.get('deploy')
             training_config = config.get('training')
+            # If training config is present, initialize training
+            if training_config:
+                training = init_training(training_config)
+                dataset_config = config.get('dataset')
+                # Ensure dataset config is present if training config is present
+                if not dataset_config:
+                    click.echo(
+                        "Error: Missing value, dataset in model.yaml file", err=True)
+                    return
+                dataset = init_dataset(dataset_config)
+            deploy_config = config.get('deploy')
+            if not deploy_config:
+                click.echo(
+                    "Error: Missing value, deploy in model.yaml file", err=True)
+                return
             # Init configs
             model = init_model(model_config)
-            dataset = init_dataset(dataset_config)
-            training = init_training(training_config)
-            init_job(model, dataset, training, deploy_config)
+            init_job(deploy_config, model, dataset, training)
+
+            spinner.succeed('Initialization complete!')
             click.echo(
-                click.style("Job Config created. Run 'constellaXion job view' to see details or 'constellaXion job run' to start training your model", fg="green"))
+                click.style("Job Config created. Run 'constellaXion model view' to see details or 'constellaXion model train' to start training your model", fg="green"))
+           
         # Parse values and excecute commands
     except yaml.YAMLError as e:
         click.echo(f"Error parsing model.yaml: {str(e)}", err=True)
     except Exception as e:
         click.echo(f"Unexpected error: {str(e)}", err=True)
+

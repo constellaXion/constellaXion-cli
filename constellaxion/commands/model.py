@@ -76,6 +76,19 @@ def serve(model: str):
 
 
 @model.command()
+def deploy():
+    """Deploy a model"""
+    click.echo(click.style(f"Deploying model...", fg="blue"))
+    config = get_job()
+    if config:
+        cloud = config['deploy']['provider']
+        match cloud:
+            case "gcp":
+                job = GCPDeployJob()
+                job.deploy(config)
+
+
+@model.command()
 def view():
     """View the status or details of one or more jobs"""
     get_job(print=True)
