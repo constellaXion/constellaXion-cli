@@ -6,14 +6,26 @@
 </div>
 
 <div align="center">
-  <a href="https://constellaxion.ai"><img src="https://img.shields.io/badge/Project-Page-blue?style=for-the-badge&color=A0C7FE&logo=homepage&logoColor=white" alt="Credits"></a>
+  <a href="https://constellaxion.ai"><img src="https://img.shields.io/badge/Project-Page-blue?style=for-the-badge&color=A0C7FE&logo=homepage&logoColor=white" alt="Project Page"></a>
   <a href="https://constellaxion.github.io"><img src="https://img.shields.io/badge/Documentation-000?logo=googledocs&logoColor=A0C7FE&style=for-the-badge" alt="Check out the documentation"></a>
+  <hr>
 </div>
 
 
-# constellaXion CLI
 
-The fastest way to Train, Deploy and Serve Open Source Language Models to your Cloud environment
+The fastest way to **Train, Deploy and Serve** Open Source Language Models to your Cloud environment
+
+## ⚡️ Features
+Configure and access the most popular open source LLMs with a few simple commands
+
+- 🚄 Fine-tune your own models using your own data and cloud resources
+
+- 🚀 Deploy models to your private cloud environment
+
+- 🤖 Serve your models with ease
+
+- 💬 Prompt your models with ease
+
 
 ## Installation
 
