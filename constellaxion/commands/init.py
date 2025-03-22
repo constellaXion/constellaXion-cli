@@ -140,7 +140,7 @@ def init():
             "Error: model.yaml file not found in current directory.", err=True)
         return
 
-    click.echo("Preparing new model job 🤖")
+    click.echo("Preparing new model config 📡")
     try:
         with open(model_config, 'r') as file:
             config = yaml.safe_load(file)

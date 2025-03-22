@@ -1,3 +1,16 @@
+<a name="readme-top"></a>
+
+<div align="center">
+  <img src="./assets/icon_light_bg.svg" alt="Logo" width="200">
+  <h1 align="center">constellaXion CLI: Automated LLM Deployments for your private cloud</h1>
+</div>
+
+<div align="center">
+  <a href="https://constellaxion.ai"><img src="https://img.shields.io/badge/Project-Page-blue?style=for-the-badge&color=FFE165&logo=homepage&logoColor=white" alt="Credits"></a>
+  <a href="https://constellaxion.github.io"><img src="https://img.shields.io/badge/Documentation-000?logo=googledocs&logoColor=FFE165&style=for-the-badge" alt="Check out the documentation"></a>
+</div>
+
+
 # constellaXion CLI
 
 The fastest way to Train, Deploy and Serve Open Source Language Models to your Cloud environment
