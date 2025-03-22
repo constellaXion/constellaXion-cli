@@ -35,6 +35,7 @@ CXN_LOGO = """\
 ╚██████╗██╔╝ ██╗██║ ╚████║
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝
 """
+
 def init_model(model_config):
     """Initialize the model
 
