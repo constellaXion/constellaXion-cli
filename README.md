@@ -39,7 +39,7 @@ pip install constellaxion
 
 ## 🧾 YAML Configuration Format
 
-Create a `config.yaml` file to describe your project. Example:
+Create a `model.yaml` file to describe your project. Example:
 
 ```yaml
 model:
