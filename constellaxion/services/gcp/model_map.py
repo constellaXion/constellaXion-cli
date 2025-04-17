@@ -23,12 +23,25 @@ model_map = {
             "replica_count": 1
         }
     },
-    "mistralai/Mistral-7B": {
+    "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T": {
         "gcp_infra": {
             "machine_type": "n1-highmem-8",
             "accelerator_type": "NVIDIA_TESLA_T4",
             "accelerator_count": 1,
             "replica_count": 1
+        },
+        "images": {
+            "serve": "europe-west2-docker.pkg.dev/constellaxion/serving-images/foundation-model",
+            "finetune": ""
+        }
+    },
+    "mistralai/Mistral-7B-v0.1": {
+        "gcp_infra": {
+            "machine_type": "n1-highmem-8",
+            "accelerator_type": "NVIDIA_TESLA_T4",
+            "accelerator_count": 1,
+            "replica_count": 1,
+            "dtype": "float16"
      },
      "images": {
         "serve": "europe-west2-docker.pkg.dev/constellaxion/serving-images/foundation-model",
@@ -74,21 +87,21 @@ model_map = {
   },
   "meta-llama/Llama-2-7b-chat-hf": {
     "gcp_infra": {
-      "machine_type": "n1-highmem-8",
-      "accelerator_type": "NVIDIA_TESLA_T4",
+      "machine_type": "g2-standard-8",
+      "accelerator_type": "NVIDIA_L4",
       "accelerator_count": 1,
-      "replica_count": 1
+      "replica_count": 1,
     },
     "images": {
         "serve": "europe-west2-docker.pkg.dev/constellaxion/serving-images/foundation-model",
         "finetune": ""
      }
   },
-  "meta-llama/Llama-2-13b-chat-hf": {
+  "meta-llama/Llama-2-13b-hf": {
     "gcp_infra": {
       "machine_type": "n1-highmem-16",
       "accelerator_type": "NVIDIA_A100_40GB",
-      "accelerator_count": 2,
+      "accelerator_count": 1,
       "replica_count": 1
     },
     "images": {
@@ -110,10 +123,10 @@ model_map = {
   },
   "tiiuae/falcon-7b-instruct": {
     "gcp_infra": {
-      "machine_type": "n1-highmem-8",
-      "accelerator_type": "NVIDIA_TESLA_T4",
+      "machine_type": "g2-standard-8",
+      "accelerator_type": "NVIDIA_L4",
       "accelerator_count": 1,
-      "replica_count": 1
+      "replica_count": 1,
     },
     "images": {
         "serve": "europe-west2-docker.pkg.dev/constellaxion/serving-images/foundation-model",
@@ -132,24 +145,12 @@ model_map = {
         "finetune": ""
      }
   },
-  "google/gemma-7b": {
+  "google/gemma-3-4b-it": {
     "gcp_infra": {
-      "machine_type": "n1-highmem-8",
-      "accelerator_type": "NVIDIA_TESLA_T4",
+      "machine_type": "g2-standard-8",
+      "accelerator_type": "NVIDIA_L4",
       "accelerator_count": 1,
-      "replica_count": 1
-    },
-    "images": {
-        "serve": "europe-west2-docker.pkg.dev/constellaxion/serving-images/foundation-model",
-        "finetune": ""
-     }
-  },
-  "google/gemma-2b": {
-    "gcp_infra": {
-      "machine_type": "n1-standard-4",
-      "accelerator_type": "NVIDIA_TESLA_T4",
-      "accelerator_count": 1,
-      "replica_count": 1
+      "replica_count": 1,
     },
     "images": {
         "serve": "europe-west2-docker.pkg.dev/constellaxion/serving-images/foundation-model",

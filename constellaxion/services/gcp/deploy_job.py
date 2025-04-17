@@ -96,8 +96,10 @@ def run_deploy_job(config):
     accelerator_type = infra_config['accelerator_type']
     accelerator_count = infra_config['accelerator_count']
     replica_count = infra_config['replica_count']
+    dtype = infra_config['dtype'] if 'dtype' in infra_config else None
     env_vars = {
-        "MODEL_NAME": base_model
+        "MODEL_NAME": base_model,
+        "DTYPE": dtype
     }
     # Initialize the Vertex AI SDK
     aiplatform.init(project=project_id, location=location)

@@ -7,8 +7,8 @@
 
 <div align="center">
   <a href="https://constellaxion.ai"><img src="https://img.shields.io/badge/Project-Page-blue?style=for-the-badge&color=A0C7FE&logo=homepage&logoColor=white" alt="Project Page"></a>
-  <!-- <a href="https://constellaxion.github.io"><img src="https://img.shields.io/badge/Documentation-000?logo=googledocs&logoColor=A0C7FE&style=for-the-badge" alt="Check out the documentation"></a>
-  <hr> -->
+  <a href="https://constellaxion.github.io"><img src="https://img.shields.io/badge/Documentation-000?logo=googledocs&logoColor=A0C7FE&style=for-the-badge" alt="Check out the documentation"></a>
+  <hr>
 </div>
 
 

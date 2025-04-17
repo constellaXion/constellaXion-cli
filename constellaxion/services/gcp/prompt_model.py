@@ -19,4 +19,4 @@ def send_prompt(prompt: str, endpoint_path: str, location: str):
 
     response = client.predict(**request)
 
-    return response.predictions[0]
+    return response.predictions[0]['prediction']
