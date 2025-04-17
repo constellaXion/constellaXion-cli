@@ -120,7 +120,7 @@ print(model)
 
 # LoRA
 lora_config = LoraConfig(
-    r=128, 
+    r=128,
     lora_alpha=128,
     target_modules=[
         "self_attn.q_proj",

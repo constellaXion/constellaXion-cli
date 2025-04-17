@@ -88,7 +88,7 @@ print(model)
 
 # LoRA
 lora_config = LoraConfig(
-    r=128, 
+    r=128,
     lora_alpha=128,
     target_modules=[
         "self_attn.q_proj",
@@ -118,12 +118,12 @@ collator = DataCollatorForCompletionOnlyLM(
 def format_prompts(example, context_window=3):
     output_texts = []
     batch_size = len(example["Prompt"])
-    
+
     for i in range(batch_size):
         # Get the prompt which already includes context
         prompt = example["Prompt"][i]
         response = example["Response"][i]
-        
+
         # Format the complete text
         text = inspect.cleandoc(
             f"""
@@ -133,7 +133,7 @@ def format_prompts(example, context_window=3):
 """
         )
         output_texts.append(text)
-    
+
     return output_texts
 
 # Initialize Vertex AI with experiment tracking
@@ -211,4 +211,4 @@ def save_and_upload_model(model, tokenizer):
     # Upload to GCS
     upload_directory_to_gcs(LOCAL_MODEL_DIR, GCS_BUCKET_NAME, GCS_MODEL_PATH)
 
-save_and_upload_model(trainer.model, tokenizer) 
+save_and_upload_model(trainer.model, tokenizer)

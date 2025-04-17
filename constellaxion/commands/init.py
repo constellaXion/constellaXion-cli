@@ -172,7 +172,7 @@ def init():
             spinner.succeed('Initialization complete!')
             click.echo(
                 click.style("Job Config created. Run 'constellaXion model view' to see details or 'constellaXion model train' to start training your model", fg="green"))
-           
+
         # Parse values and excecute commands
     except yaml.YAMLError as e:
         click.echo(f"Error parsing model.yaml: {str(e)}", err=True)

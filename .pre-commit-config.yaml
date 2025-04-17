@@ -1,0 +1,6 @@
+minimum_pre_commit_version: "4.2.0"
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
