@@ -11,9 +11,9 @@ from halo import Halo
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.training import Training
-from constellaxion.handlers.cloud_job import GCPDeployJob
+from constellaxion.handlers.cloud_job import GCPDeployJob, AWSDeployJob
 from constellaxion.services.gcp.iam import create_service_account
-
+from constellaxion.services.aws.iam import create_aws_permissions
 console = Console()
 
 CONSTELLAXION_LOGO = """\
@@ -93,8 +93,17 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
     Args:
         job_config (list): List of dicts containing deployment job config details
     """
-    gcp = job_config.get('gcp')
-    if gcp:
+    if 'aws' in job_config:
+        platform = 'aws'
+    elif 'gcp' in job_config:
+        platform = 'gcp'
+    else:
+        click.echo(
+            "Error: Missing value, job.gcp or job.aws in model.yaml file", err=True)
+    
+    # Initialize GCP resources
+    if platform == 'gcp':
+        gcp = job_config.get('gcp')
         project_id = gcp.get('project_id')
         location = gcp.get('location')
         if not project_id:
@@ -103,7 +112,7 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
         if not location:
             click.echo(
                 "Error: Missing value, job.gcp.location in model.yaml file", err=True)
-
+        
         click.echo(f"Initializing resources for project: {project_id}")
         try:
             service_account_email = create_service_account(project_id)
@@ -116,6 +125,17 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
         # Create job config
         job.create_config(model, project_id,
                           location, service_account_email, dataset, training)
+
+    # Initialize AWS resources
+    elif platform == 'aws':
+        aws = job_config.get('aws')
+        region = aws.get('region')
+        if not region:
+            raise ValueError("Missing value, job.aws.region in model.yaml file")
+        create_aws_permissions()
+        job = AWSDeployJob()
+        # Create job config
+        job.create_config(model, region, dataset, training)
 
 
 @click.command(help="Initialize a new model")

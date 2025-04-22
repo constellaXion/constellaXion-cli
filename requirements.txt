@@ -6,3 +6,4 @@ halo
 pydantic
 pyyaml
 click
+boto3
