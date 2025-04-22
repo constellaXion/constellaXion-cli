@@ -1,11 +1,11 @@
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource
 from google.auth import default
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.id_token import verify_oauth2_token
 
 
-def create_service_account(project_id):
+def create_service_account(project_id: str) -> str:
     """
     Create a service account and assign roles.
 
@@ -20,7 +20,7 @@ def create_service_account(project_id):
         credentials, _ = default(
             scopes=["https://www.googleapis.com/auth/cloud-platform"])
 
-        iam_service = build('iam', 'v1', credentials=credentials)
+        iam_service: Resource = build('iam', 'v1', credentials=credentials)
 
         # Extract the email from credentials info
         user_email = get_logged_in_user_email()
