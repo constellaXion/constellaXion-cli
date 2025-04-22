@@ -21,7 +21,7 @@ def create_vertex_dataset(model_id: str, bucket_name: str, train_set: str, val_s
             f"gs://{bucket_name}/{val_set}",
             f"gs://{bucket_name}/{test_set}"
         ]
-        
+
         # Create dataset without using paths as label values
         aiplatform.TabularDataset.create(
             display_name=f"{model_id}-dataset",
@@ -31,7 +31,7 @@ def create_vertex_dataset(model_id: str, bucket_name: str, train_set: str, val_s
                 "model_id": model_id
             }
         )
-        
+
     except Exception as e:
         print(f"Warning: Error while checking/creating metadata store: {str(e)}")
         print("Continuing with training...")
@@ -88,13 +88,13 @@ def create_training_job(
 ) -> None:
     aiplatform.init(project=project, location=location,
                     staging_bucket=staging_bucket)
-    
+
     # Try to get existing experiment, create if it doesn't exist
     try:
         experiment = aiplatform.Experiment(experiment_name)
     except Exception:
         experiment = aiplatform.Experiment.create(experiment_name)
-    
+
     # Get TensorBoard instance
     tensorboard = experiment.get_backing_tensorboard_resource()
     if tensorboard is None:
@@ -106,35 +106,35 @@ def create_training_job(
         )
         # Associate the tensorboard with the experiment
         experiment.assign_backing_tensorboard(tensorboard)
-    
+
     tensorboard_resource_name = tensorboard.gca_resource.name
-    
+
     # Extract experiment ID from the resource name
     experiment_id = experiment.resource_name.split('/')[-1]
-    
+
     # Parse the tensorboard resource name to get project ID and tensorboard ID
     parts = tensorboard_resource_name.split('/')
     project_number = parts[1]  # Gets the numeric project ID
     tensorboard_id = parts[-1]
-    
+
     # Generate Tensorboard URL in the correct format
     tensorboard_url = f"https://{location}.tensorboard.googleusercontent.com/experiment/projects+{project_number}+locations+{location}+tensorboards+{tensorboard_id}+experiments+{experiment_id}/#scalars"
     print(tensorboard_resource_name)
-    
+
     # Read existing job.json
     try:
         with open('job.json', 'r') as f:
             job_config = json.load(f)
     except FileNotFoundError:
         job_config = {}
-    
+
     # Ensure 'training' key exists
     if 'training' not in job_config:
         job_config['training'] = {}
-    
+
     # Add tensorboard URL to training section
     job_config['training']['tensorboard_url'] = tensorboard_url
-    
+
     # Write updated config back to job.json
     with open('job.json', 'w') as f:
         json.dump(job_config, f, indent=4)

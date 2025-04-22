@@ -47,7 +47,7 @@ model:
   base: tiiuae/falcon-7b-instruct
 
 dataset:
-  train: ./train.csv # Path to your training data. 
+  train: ./train.csv # Path to your training data.
   val: ./val.csv # Path to your validation data
   test: ./test.csv # Path to your test data
 

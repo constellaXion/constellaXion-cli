@@ -19,7 +19,7 @@ class GCSUploaderHandler(FileSystemEventHandler):
     def upload_file(self, file_path):
         relative_path = os.path.relpath(file_path, self.local_dir)
         gcs_path = os.path.join(self.gcs_dir, relative_path)
-        
+
         try:
             with open(file_path, "rb") as f:
                 with self.fs.open(gcs_path, "wb") as gcs_file:
@@ -27,13 +27,12 @@ class GCSUploaderHandler(FileSystemEventHandler):
             print(f"✅ Uploaded: {relative_path} to {gcs_path}")
         except Exception as e:
             print(f"❌ Failed to upload {relative_path}: {e}")
-    
+
     def upload_directory(self, directory_path):
         for root, dirs, files in os.walk(directory_path):
             for file in files:
                 self.upload_file(os.path.join(root, file))
             for dir in dirs:
                 self.upload_directory(os.path.join(root, dir))
-                
-            
-    
+
+
