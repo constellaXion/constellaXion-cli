@@ -7,9 +7,9 @@ from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.training import Training
 from constellaxion.services.gcp.train_job import run_training_job
 from constellaxion.services.gcp.serve_job import run_serving_job
-from constellaxion.services.gcp.deploy_job import run_deploy_job
+from constellaxion.services.gcp.gcp_deploy_job import run_gcp_deploy_job
 from constellaxion.services.gcp.prompt_model import send_prompt
-
+from constellaxion.services.aws.aws_deploy_job import run_aws_deploy_job
 
 class BaseCloudJob(ABC):
     def __init__(self):
@@ -30,11 +30,12 @@ class GCPDeployJob(BaseCloudJob):
 
     @staticmethod
     def run(config):
+        """Run model finetuning on GCP"""
         run_training_job(config)
 
     @staticmethod
     def serve(config):
-        """Serve GCP model """
+        """Serve finetuned model on GCP"""
         endpoint_path = run_serving_job(config)
         config['deploy']['endpoint_path'] = endpoint_path
         with open("job.json", "w") as f:
@@ -42,7 +43,7 @@ class GCPDeployJob(BaseCloudJob):
 
     @staticmethod
     def deploy(config):
-        """Deploy GCP model"""
+        """Deploy foundation model to GCP"""
         endpoint_path = run_deploy_job(config)
         config['deploy']['endpoint_path'] = endpoint_path
         with open("job.json", "w") as f:
@@ -87,10 +88,31 @@ class AWSDeployJob(BaseCloudJob):
         super().__init__()
         pass
 
-    def run(self):
+    @staticmethod
+    def run(config):
+        """Run model finetuning on AWS"""
         pass
 
-    def create_config(self, model: Model, region: str, dataset: Dataset, training: Training):
+    @staticmethod
+    def serve(config):
+        """Serve finetuned model on AWS"""
+        pass
+
+    @staticmethod
+    def deploy(config):
+        """Deploy foundation model to AWS"""
+        endpoint_path = run_aws_deploy_job(config)
+        config['deploy']['endpoint_path'] = endpoint_path
+        with open("job.json", "w") as f:
+            json.dump(config, f, indent=4)
+
+    @staticmethod
+    def prompt(prompt, config):
+        """Send prompt to model"""
+        pass
+
+    @staticmethod
+    def create_config(model: Model, region: str, dataset: Dataset, training: Training):
         job_config = {
             "model": {
                 "model_id": model.id,

@@ -1,29 +1,6 @@
 import os
 from google.cloud import aiplatform
-from constellaxion.services.gcp.model_map import model_map
-
-# def download_model(hf_path: str, model_dir: str):
-#     """Downloads a Hugging Face model and tokenizer."""
-#     print("Downloading model...")
-#     model = AutoModelForSequenceClassification.from_pretrained(hf_path)
-#     tokenizer = AutoTokenizer.from_pretrained(hf_path)
-
-#     os.makedirs(model_dir, exist_ok=True)
-#     model.save_pretrained(model_dir)
-#     tokenizer.save_pretrained(model_dir)
-#     print(f"Model saved to {model_dir}/")
-
-
-# def upload_to_gcs(model_dir: str, bucket_name: str, gcs_path: str):
-#     """Uploads the model to Google Cloud Storage."""
-#     print(f"Uploading model to {gcs_path}...")
-#     storage_client = storage.Client()
-#     bucket = storage_client.bucket(bucket_name)
-
-#     uploader = GCSUploadHandler(model_dir, gcs_path)
-#     uploader.upload_directory(model_dir)
-#     print(f"Uploaded model to {gcs_path}")
-
+from constellaxion.models.model_map import model_map
 
 def create_model_from_custom_container(model_name: str, image_uri: str, env_vars: dict):
     print("Creating model from custom container...")
@@ -83,7 +60,7 @@ def deploy_model_to_endpoint(model,
     return endpoint.resource_name
 
 
-def run_deploy_job(config):
+def run_gcp_deploy_job(config):
     project_id = config['deploy']['project_id']
     base_model = config['model']['base_model']
     location = config['deploy']['location']
@@ -104,10 +81,6 @@ def run_deploy_job(config):
     # Initialize the Vertex AI SDK
     aiplatform.init(project=project_id, location=location)
     # # Download the model
-    # download_model(hf_path, model_path)
-    # # Upload the model to GCS
-    # upload_to_gcs(model_path, bucket_name, model_path)
-    # Register a model
     model = create_model_from_custom_container(base_model, image_uri, env_vars)
     # Deploy model to endpoint
     endpoint_path = deploy_model_to_endpoint(model, model_id,

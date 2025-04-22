@@ -1,7 +1,7 @@
 import os
 import json
 import click
-from constellaxion.handlers.cloud_job import GCPDeployJob
+from constellaxion.handlers.cloud_job import GCPDeployJob, AWSDeployJob
 
 
 def get_job(print=False):
@@ -55,10 +55,12 @@ def train():
     config = get_job()
     if config:
         cloud = config['deploy']['provider']
-        match cloud:
-            case "gcp":
-                job = GCPDeployJob()
-                job.run(config)
+        if cloud == "gcp":
+            job = GCPDeployJob()
+            job.run(config)
+        # elif cloud == "aws":
+        #     job = AWSDeployJob()
+        #     job.run(config)
 
 
 @model.command(help="Serve a trained model")
@@ -69,23 +71,23 @@ def serve(model: str):
     config = get_job()
     if config:
         cloud = config['deploy']['provider']
-        match cloud:
-            case "gcp":
-                job = GCPDeployJob()
-                job.serve(config)
+        if cloud == "gcp":
+            job = GCPDeployJob()
+            job.serve(config)
 
 
 @model.command()
 def deploy():
     """Deploy a model"""
     click.echo(click.style(f"Deploying model...", fg="blue"))
-    config = get_job()
-    if config:
-        cloud = config['deploy']['provider']
-        match cloud:
-            case "gcp":
-                job = GCPDeployJob()
-                job.deploy(config)
+    job_config = get_job()
+    cloud = job_config['deploy']['provider']
+    if cloud == "gcp":
+        job = GCPDeployJob()
+        job.deploy(job_config)
+    elif cloud == "aws":
+        job = AWSDeployJob()
+        job.deploy(job_config)
 
 
 @model.command()

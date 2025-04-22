@@ -1,6 +1,6 @@
 import json
 from google.cloud import aiplatform, storage
-from constellaxion.services.gcp.model_map import model_map
+from constellaxion.models.model_map import model_map
 from google.cloud import storage
 import pkg_resources
 
