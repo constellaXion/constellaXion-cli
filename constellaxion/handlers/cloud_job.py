@@ -90,5 +90,23 @@ class AWSDeployJob(BaseCloudJob):
     def run(self):
         pass
 
-    def create_config(self, model: Model, dataset: Dataset):
-        pass
+    def create_config(self, model: Model, region: str, dataset: Dataset, training: Training):
+        job_config = {
+            "model": {
+                "model_id": model.id,
+                "base_model": model.base_model,
+            },
+            "dataset": dataset.to_dict() if dataset else None,
+            "training": training.to_dict() if training else None,
+            "deploy": {
+                "provider": "aws",
+                "region": region,
+                "bucket_name": f"constellaxion-{model.id}",
+                "staging_dir": f"{model.id}/staging",
+                "experiments_dir": f"{model.id}/experiments",
+                "model_path": f"{model.id}/model",
+                "iam_role": "constellaxion-admin"
+            }
+        }
+        with open("job.json", "w") as f:
+            json.dump(job_config, f, indent=4)
