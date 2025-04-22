@@ -1,5 +1,8 @@
 name: Run pre-commit checks
-on: [push, pull_request]
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
 jobs:
   example_job:
     runs-on: ubuntu-latest
