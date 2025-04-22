@@ -1,22 +1,18 @@
+"""Initialize a new model configuration and setup required resources."""
+
 import os
-import shutil
-import yaml
 import click
+import yaml
+from rich.console import Console
+from rich.text import Text
+from rich.panel import Panel
+from halo import Halo
+
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.training import Training
 from constellaxion.handlers.cloud_job import GCPDeployJob
 from constellaxion.services.gcp.iam import create_service_account
-import pyfiglet
-import random
-import time
-from rich.console import Console
-from rich.text import Text
-from rich.progress import Progress
-from rich.panel import Panel
-from halo import Halo
-import sys
-import subprocess
 
 console = Console()
 
@@ -42,15 +38,15 @@ def init_model(model_config):
     Args:
         model_config (dict): Model config details
     """
-    id = model_config.get('id')
+    model_id = model_config.get('id')
     base = model_config.get('base')
-    if not id:
+    if not model_id:
         click.echo(
-            f"Error: Missing value, model.id in model.yaml file", err=True)
+            "Error: Missing value, model.id in model.yaml file", err=True)
     if not base:
         click.echo(
-            f"Error: Missing value, model.base in model.yaml file", err=True)
-    return Model(id, base)
+            "Error: Missing value, model.base in model.yaml file", err=True)
+    return Model(model_id, base)
 
 
 def init_dataset(dataset_config):
@@ -64,13 +60,13 @@ def init_dataset(dataset_config):
     test = dataset_config.get('test')
     if not train:
         click.echo(
-            f"Error: Missing value, dataset.train in model.yaml file", err=True)
+            "Error: Missing value, dataset.train in model.yaml file", err=True)
     if not val:
         click.echo(
-            f"Error: Missing value, dataset.val in model.yaml file", err=True)
+            "Error: Missing value, dataset.val in model.yaml file", err=True)
     if not test:
         click.echo(
-            f"Error: Missing value, dataset.test in model.yaml file", err=True)
+            "Error: Missing value, dataset.test in model.yaml file", err=True)
     return Dataset(train, val, test)
 
 
@@ -84,10 +80,10 @@ def init_training(training_config):
     batch_size = training_config.get('batch_size')
     if not epochs:
         click.echo(
-            f"Error: Missing value, training.epochs in model.yaml file", err=True)
+            "Error: Missing value, training.epochs in model.yaml file", err=True)
     if not batch_size:
         click.echo(
-            f"Error: Missing value, training.batch_size in model.yaml file", err=True)
+            "Error: Missing value, training.batch_size in model.yaml file", err=True)
     return Training(epochs, batch_size)
 
 
@@ -103,10 +99,10 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
         location = gcp.get('location')
         if not project_id:
             click.echo(
-                f"Error: Missing value, job.gcp.project_id in model.yaml file", err=True)
+                "Error: Missing value, job.gcp.project_id in model.yaml file", err=True)
         if not location:
             click.echo(
-                f"Error: Missing value, job.gcp.location in model.yaml file", err=True)
+                "Error: Missing value, job.gcp.location in model.yaml file", err=True)
 
         click.echo(f"Initializing resources for project: {project_id}")
         try:
@@ -114,7 +110,7 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
             if service_account_email:
                 click.echo(
                     "The required GCP Service Account is ready to use 🦾")
-        except Exception as e:
+        except (ValueError, RuntimeError) as e:
             click.echo(f"Error: {str(e)}", err=True)
         job = GCPDeployJob()
         # Create job config
@@ -143,7 +139,7 @@ def init():
 
     click.echo("Preparing new model config 📡")
     try:
-        with open(model_config, 'r') as file:
+        with open(model_config, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
             training = None
             dataset = None
@@ -171,11 +167,15 @@ def init():
 
             spinner.succeed('Initialization complete!')
             click.echo(
-                click.style("Job Config created. Run 'constellaXion model view' to see details or 'constellaXion model train' to start training your model", fg="green"))
+                click.style(
+                    "Job Config created. Run 'constellaXion model view' to see details "
+                    "or 'constellaXion model train' to start training your model",
+                    fg="green"
+                )
+            )
 
-        # Parse values and excecute commands
+    # Parse values and excecute commands
     except yaml.YAMLError as e:
         click.echo(f"Error parsing model.yaml: {str(e)}", err=True)
-    except Exception as e:
-        click.echo(f"Unexpected error: {str(e)}", err=True)
-
+    except (OSError, ValueError, KeyError) as e:
+        click.echo(f"Error: {str(e)}", err=True)
