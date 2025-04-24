@@ -1,4 +1,4 @@
-from constellaxion.types.model_types import BaseModelName, TrainType
+from constellaxion.types.model_types import BaseModelName
 
 
 class Model:

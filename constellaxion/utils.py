@@ -1,6 +1,4 @@
-import os
 import json
-import click
 
 
 def get_json(path):

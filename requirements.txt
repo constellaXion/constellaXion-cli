@@ -1,9 +1,9 @@
-requests
-rich
+boto3
+click
 google-cloud-aiplatform
-pyfiglet
 halo
 pydantic
+pyfiglet
 pyyaml
-click
-boto3
+requests
+rich

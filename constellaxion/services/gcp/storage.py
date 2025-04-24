@@ -1,6 +1,8 @@
 import os
+
 import gcsfs
 from watchdog.events import FileSystemEventHandler
+
 
 class GCSUploaderHandler(FileSystemEventHandler):
     def __init__(self, local_dir, gcs_dir):
@@ -34,5 +36,3 @@ class GCSUploaderHandler(FileSystemEventHandler):
                 self.upload_file(os.path.join(root, file))
             for dir in dirs:
                 self.upload_directory(os.path.join(root, dir))
-
-

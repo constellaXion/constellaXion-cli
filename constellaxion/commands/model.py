@@ -1,6 +1,8 @@
-import os
 import json
+import os
+
 import click
+
 from constellaxion.handlers.cloud_job import GCPDeployJob
 
 
@@ -9,13 +11,15 @@ def get_job(print=False):
         with open("job.json", "r") as f:
             config = json.load(f)
         if print:
-            click.echo(click.style(
-                "Model Job Config Details:", bold=True, fg="blue"))
+            click.echo(click.style("Model Job Config Details:", bold=True, fg="blue"))
             click.echo(json.dumps(config, indent=4))
         return config
     else:
-        click.echo(click.style(
-            "Error: job.json not found. Run 'constellaxion init' first", fg="red"))
+        click.echo(
+            click.style(
+                "Error: job.json not found. Run 'constellaxion init' first", fg="red"
+            )
+        )
         return None
 
 
@@ -29,32 +33,36 @@ def model():
 @click.option("--model", required=True, help="Model ID")
 def prompt(model: str):
     """Prompt a deployed model"""
-    click.echo(click.style(
-        f"Send a prompt to {model}", fg="yellow"))
+    click.echo(click.style(f"Send a prompt to {model}", fg="yellow"))
 
     while True:
         config = get_job()
-        if config and config['deploy']['endpoint_path']:
+        if config and config["deploy"]["endpoint_path"]:
             click.echo(click.style("\nPrompt: ", fg="green"), nl=False)
             prompt = input()
-            if prompt.lower() in ['exit', 'quit']:
+            if prompt.lower() in ["exit", "quit"]:
                 break
             job = GCPDeployJob()
             response = job.prompt(prompt, config)
             click.echo(click.style(f"\n🤖 {model}: ", fg="green") + response)
         else:
-            click.echo(click.style(
-                "Error: Trained model not found. Try training and deploying a model first", fg="red"))
+            click.echo(
+                click.style(
+                    "Error: Trained model not found."
+                    "Try training and deploying a model first",
+                    fg="red",
+                )
+            )
             break
 
 
 @model.command()
 def train():
     """Run training job"""
-    click.echo(click.style(f"Preparing training job...", fg="blue"))
+    click.echo(click.style("Preparing training job...", fg="blue"))
     config = get_job()
     if config:
-        cloud = config['deploy']['provider']
+        cloud = config["deploy"]["provider"]
         match cloud:
             case "gcp":
                 job = GCPDeployJob()
@@ -68,7 +76,7 @@ def serve(model: str):
     click.echo(click.style(f"Serving model with ID: {model}", fg="blue"))
     config = get_job()
     if config:
-        cloud = config['deploy']['provider']
+        cloud = config["deploy"]["provider"]
         match cloud:
             case "gcp":
                 job = GCPDeployJob()
@@ -78,10 +86,10 @@ def serve(model: str):
 @model.command()
 def deploy():
     """Deploy a model"""
-    click.echo(click.style(f"Deploying model...", fg="blue"))
+    click.echo(click.style("Deploying model...", fg="blue"))
     config = get_job()
     if config:
-        cloud = config['deploy']['provider']
+        cloud = config["deploy"]["provider"]
         match cloud:
             case "gcp":
                 job = GCPDeployJob()

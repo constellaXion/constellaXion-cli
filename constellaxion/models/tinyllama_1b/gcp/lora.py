@@ -1,56 +1,49 @@
-import os
-import time
-import gcsfs
 import argparse
 import inspect
-import pandas as pd
-from trl import SFTTrainer, DataCollatorForCompletionOnlyLM, SFTConfig
-from transformers import TrainingArguments, AutoModelForCausalLM, AutoTokenizer
-from peft import LoraConfig, TaskType, get_peft_model, PeftModel
-from datasets import Dataset
-from google.cloud import storage
-from transformers.integrations import TensorBoardCallback
-from google.cloud import aiplatform
+import os
 import threading
+import time
+
+import pandas as pd
+from constellaxion_utils.gcs.gcs_uploader import (GCSUploaderHandler,
+                                                  ModelManager)
+from datasets import Dataset
+from google.cloud import aiplatform, storage
+from peft import LoraConfig, TaskType, get_peft_model
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers.integrations import TensorBoardCallback
+from trl import DataCollatorForCompletionOnlyLM, SFTConfig, SFTTrainer
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from constellaxion_utils.gcs.gcs_uploader import GCSUploaderHandler, ModelManager
 
 # Parse cli args
 parser = argparse.ArgumentParser()
-parser.add_argument("--epochs", type=str, required=True,
-                    help="Training epochs")
-parser.add_argument("--batch-size", type=str, required=True,
-                    help="Batch size")
-parser.add_argument("--train-set", type=str, required=True,
-                    help="Training set path")
-parser.add_argument("--val-set", type=str, required=True,
-                    help="Validation set path")
-parser.add_argument("--test-set", type=str, required=True,
-                    help="Test set path")
-parser.add_argument("--bucket-name", type=str, required=True,
-                    help="GCS bucket name")
-parser.add_argument("--model-path", type=str, required=True,
-                    help="Model artefacts output path")
-parser.add_argument("--model-id", type=str, required=True,
-                    help="Model ID")
-parser.add_argument("--experiments-dir", type=str, required=True,
-                    help="Experiments output path")
-parser.add_argument("--location", type=str, required=True,
-                    help="Location")
-parser.add_argument("--project-id", type=str, required=True,
-                    help="Project ID")
-parser.add_argument("--experiment-name", type=str, required=True,
-                    help="Experiment name")
+parser.add_argument("--epochs", type=str, required=True, help="Training epochs")
+parser.add_argument("--batch-size", type=str, required=True, help="Batch size")
+parser.add_argument("--train-set", type=str, required=True, help="Training set path")
+parser.add_argument("--val-set", type=str, required=True, help="Validation set path")
+parser.add_argument("--test-set", type=str, required=True, help="Test set path")
+parser.add_argument("--bucket-name", type=str, required=True, help="GCS bucket name")
+parser.add_argument(
+    "--model-path", type=str, required=True, help="Model artefacts output path"
+)
+parser.add_argument("--model-id", type=str, required=True, help="Model ID")
+parser.add_argument(
+    "--experiments-dir", type=str, required=True, help="Experiments output path"
+)
+parser.add_argument("--location", type=str, required=True, help="Location")
+parser.add_argument("--project-id", type=str, required=True, help="Project ID")
+parser.add_argument(
+    "--experiment-name", type=str, required=True, help="Experiment name"
+)
 args = parser.parse_args()
 
 SEED = 42
 
-MODEL_NAME = 'TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T'
-PAD_TOKEN = '<pad>'
+MODEL_NAME = "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"
+PAD_TOKEN = "<pad>"
 
-LOCAL_MODEL_DIR = './model'
-CHECKPOINT_DIR = './checkpoints'
+LOCAL_MODEL_DIR = "./model"
+CHECKPOINT_DIR = "./checkpoints"
 GCS_BUCKET_NAME = args.bucket_name
 GCS_MODEL_PATH = args.model_path
 LOCATION = args.location
@@ -66,6 +59,7 @@ train_set = f"gs://{GCS_BUCKET_NAME}/{args.train_set}"
 val_set = f"gs://{GCS_BUCKET_NAME}/{args.val_set}"
 test_set = f"gs://{GCS_BUCKET_NAME}/{args.test_set}"
 output_dir = f"gs://{GCS_BUCKET_NAME}/{EXPERIMENT_DIR}"
+
 
 def start_gcs_sync(local_dir, gcs_dir):
     event_handler = GCSUploaderHandler(local_dir, gcs_dir)
@@ -91,11 +85,13 @@ test_df = pd.read_csv(test_set)
 dataset = {
     "train": Dataset.from_pandas(train_df),
     "val": Dataset.from_pandas(val_df),
-    "test": Dataset.from_pandas(test_df)
+    "test": Dataset.from_pandas(test_df),
 }
 
 model_manager = ModelManager()
-checkpoint = model_manager.prepare_checkpoint(GCS_BUCKET_NAME, EXPERIMENT_DIR, CHECKPOINT_DIR)
+checkpoint = model_manager.prepare_checkpoint(
+    GCS_BUCKET_NAME, EXPERIMENT_DIR, CHECKPOINT_DIR
+)
 
 if checkpoint:
     MODEL_PATH = checkpoint
@@ -103,14 +99,14 @@ else:
     MODEL_PATH = MODEL_NAME
 
 # Tokenizer
-tokenizer = AutoTokenizer.from_pretrained(
-    MODEL_PATH, add_eos_token=True, use_fast=True)
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, add_eos_token=True, use_fast=True)
 tokenizer.add_special_tokens({"pad_token": PAD_TOKEN})
 tokenizer.padding_side = "right"
 
 # Model
 model = AutoModelForCausalLM.from_pretrained(
-    MODEL_NAME, device_map="auto", trust_remote_code=True)
+    MODEL_NAME, device_map="auto", trust_remote_code=True
+)
 model.resize_token_embeddings(len(tokenizer), pad_to_multiple_of=8)
 
 model.pad_token_id = tokenizer.pad_token_id
@@ -133,7 +129,7 @@ lora_config = LoraConfig(
     ],
     lora_dropout=0.1,
     bias="none",
-    task_type=TaskType.CAUSAL_LM
+    task_type=TaskType.CAUSAL_LM,
 )
 
 model = get_peft_model(model, lora_config)
@@ -148,11 +144,11 @@ model.print_trainable_parameters()
 # response_template = "\n### Response:"
 # todo: add instruction and response template
 response_template = "\n### Prediction:"
-response_template_ids = tokenizer.encode(
-    response_template, add_special_tokens=False)[2:]
+response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)[
+    2:
+]
 
-collator = DataCollatorForCompletionOnlyLM(
-    response_template_ids, tokenizer=tokenizer)
+collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
 
 
 # def format_prompts(example):
@@ -166,9 +162,10 @@ collator = DataCollatorForCompletionOnlyLM(
 #     )
 #     return text
 
+
 def format_prompts(example):
     text = inspect.cleandoc(
-            f"""
+        f"""
 ### Title:
 {example["title"]}
 ### Text:
@@ -177,7 +174,7 @@ def format_prompts(example):
 subject: {example["subject"]}
 sentiment: {example["sentiment"]}
 """
-            )
+    )
     return text
 
 
@@ -186,7 +183,7 @@ aiplatform.init(
     project=PROJECT_ID,
     location=LOCATION,
     experiment=EXPERIMENT_NAME,
-    experiment_description="TinyLlama LoRA fine-tuning experiment"
+    experiment_description="TinyLlama LoRA fine-tuning experiment",
 )
 
 # Train Model
@@ -220,7 +217,7 @@ trainer = SFTTrainer(
     tokenizer=tokenizer,
     formatting_func=format_prompts,
     data_collator=collator,
-    callbacks=[TensorBoardCallback()]
+    callbacks=[TensorBoardCallback()],
 )
 
 # Start the GCS sync in a separate thread
@@ -250,8 +247,7 @@ def upload_directory_to_gcs(local_path, bucket_name, gcs_path):
 
             blob = bucket.blob(gcs_blob_path)
             blob.upload_from_filename(local_file_path)
-            print(
-                f"Uploaded {local_file_path} to gs://{bucket_name}/{gcs_blob_path}")
+            print(f"Uploaded {local_file_path} to gs://{bucket_name}/{gcs_blob_path}")
 
 
 def save_model_tokenizer_locally(model, tokenizer, save_dir):

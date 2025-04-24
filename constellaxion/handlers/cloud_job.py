@@ -1,14 +1,13 @@
 import json
-import random
-import string
-from abc import abstractmethod, ABC
-from constellaxion.handlers.model import Model
+from abc import ABC, abstractmethod
+
 from constellaxion.handlers.dataset import Dataset
+from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
-from constellaxion.services.gcp.train_job import run_training_job
-from constellaxion.services.gcp.serve_job import run_serving_job
 from constellaxion.services.gcp.deploy_job import run_deploy_job
 from constellaxion.services.gcp.prompt_model import send_prompt
+from constellaxion.services.gcp.serve_job import run_serving_job
+from constellaxion.services.gcp.train_job import run_training_job
 
 
 class BaseCloudJob(ABC):
@@ -34,9 +33,9 @@ class GCPDeployJob(BaseCloudJob):
 
     @staticmethod
     def serve(config):
-        """Serve GCP model """
+        """Serve GCP model"""
         endpoint_path = run_serving_job(config)
-        config['deploy']['endpoint_path'] = endpoint_path
+        config["deploy"]["endpoint_path"] = endpoint_path
         with open("job.json", "w") as f:
             json.dump(config, f, indent=4)
 
@@ -44,20 +43,27 @@ class GCPDeployJob(BaseCloudJob):
     def deploy(config):
         """Deploy GCP model"""
         endpoint_path = run_deploy_job(config)
-        config['deploy']['endpoint_path'] = endpoint_path
+        config["deploy"]["endpoint_path"] = endpoint_path
         with open("job.json", "w") as f:
             json.dump(config, f, indent=4)
 
     @staticmethod
     def prompt(prompt, config):
         """Send prompt to model"""
-        endpoint_path = config['deploy']['endpoint_path']
-        location = config['deploy']['location']
+        endpoint_path = config["deploy"]["endpoint_path"]
+        location = config["deploy"]["location"]
         response = send_prompt(prompt, endpoint_path, location)
         return response
 
     @staticmethod
-    def create_config(model: Model, project_id: str, location: str, service_account: str, dataset: Dataset, training: Training):
+    def create_config(
+        model: Model,
+        project_id: str,
+        location: str,
+        service_account: str,
+        dataset: Dataset,
+        training: Training,
+    ):
         """Create a JSON configuration file from model and dataset attributes."""
         bucket_name = f"constellaxion-{project_id}"
         job_config = {
@@ -75,22 +81,26 @@ class GCPDeployJob(BaseCloudJob):
                 "staging_dir": f"{model.id}/staging",
                 "experiments_dir": f"{model.id}/experiments",
                 "model_path": f"{model.id}/model",
-                "service_account": service_account
-            }
+                "service_account": service_account,
+            },
         }
         with open("job.json", "w") as f:
             json.dump(job_config, f, indent=4)
 
 
 class AWSDeployJob(BaseCloudJob):
-    def __init__(self, ):
+    def __init__(
+        self,
+    ):
         super().__init__()
         pass
 
     def run(self):
         pass
 
-    def create_config(self, model: Model, region: str, dataset: Dataset, training: Training):
+    def create_config(
+        self, model: Model, region: str, dataset: Dataset, training: Training
+    ):
         job_config = {
             "model": {
                 "model_id": model.id,
@@ -105,8 +115,8 @@ class AWSDeployJob(BaseCloudJob):
                 "staging_dir": f"{model.id}/staging",
                 "experiments_dir": f"{model.id}/experiments",
                 "model_path": f"{model.id}/model",
-                "iam_role": "constellaxion-admin"
-            }
+                "iam_role": "constellaxion-admin",
+            },
         }
         with open("job.json", "w") as f:
             json.dump(job_config, f, indent=4)
