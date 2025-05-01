@@ -93,14 +93,13 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
     Args:
         job_config (list): List of dicts containing deployment job config details
     """
+    platform = None
     if 'aws' in job_config:
         platform = 'aws'
     elif 'gcp' in job_config:
         platform = 'gcp'
     else:
-        click.echo(
-            "Error: Missing value, job.gcp or job.aws in model.yaml file", err=True)
-    
+        click.echo("Error: Missing value, job.gcp or job.aws in model.yaml file", err=True)
     # Initialize GCP resources
     if platform == 'gcp':
         gcp = job_config.get('gcp')
@@ -112,7 +111,7 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
         if not location:
             click.echo(
                 "Error: Missing value, job.gcp.location in model.yaml file", err=True)
-        
+
         click.echo(f"Initializing resources for project: {project_id}")
         try:
             service_account_email = create_service_account(project_id)

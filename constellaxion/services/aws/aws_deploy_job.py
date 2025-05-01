@@ -1,26 +1,24 @@
+"""AWS LMI deployment module for deploying models to SageMaker endpoints using Large Model Inference."""
 import boto3
-import uuid
+import sagemaker
+from sagemaker.djl_inference.model import DJLModel
 from constellaxion.models.model_map import model_map
 from constellaxion.services.aws.utils import get_aws_account_id
 
 
-def create_model_from_custom_container(model_id: str, image_uri: str, env_vars: dict, execution_role: str):
-    sm = boto3.client("sagemaker")
-    model_name_unique = f"{model_id}-{uuid.uuid4().hex[:8]}"
-    sm.create_model(
-        ModelName=model_name_unique,
-        PrimaryContainer={
-            "Image": image_uri,
-            "Environment": env_vars
-        },
-        ExecutionRoleArn=execution_role,
+def create_model_from_lmi_container(base_model: str, env_vars: dict, execution_role: str):
+    """Creates a SageMaker model using the LMI container."""
+    model = DJLModel(
+        model_id=base_model,
+        env=env_vars,
+        role=execution_role
     )
-    print(f"Model created: {model_name_unique}")
-    return model_name_unique
+    return model
 
 
 def get_or_create_endpoint_config(endpoint_config_name: str, model_id: str, instance_type: str,
-                                  accelerator_type: str, accelerator_count: int):
+                                accelerator_type: str, accelerator_count: int):
+    """Gets or creates a SageMaker endpoint configuration for LMI."""
     sm = boto3.client("sagemaker")
     try:
         sm.describe_endpoint_config(EndpointConfigName=endpoint_config_name)
@@ -34,8 +32,6 @@ def get_or_create_endpoint_config(endpoint_config_name: str, model_id: str, inst
             "InstanceType": instance_type,
             "InitialVariantWeight": 1.0
         }
-        if accelerator_type:
-            production_variant["AcceleratorType"] = accelerator_type
 
         sm.create_endpoint_config(
             EndpointConfigName=endpoint_config_name,
@@ -44,30 +40,19 @@ def get_or_create_endpoint_config(endpoint_config_name: str, model_id: str, inst
         print(f"Created endpoint config: {endpoint_config_name}")
 
 
-def deploy_model_to_endpoint(model_name: str, model_id: str, instance_type: str,
-                             accelerator_type: str, accelerator_count: int):
-    sm = boto3.client("sagemaker")
-    endpoint_config_name = f"{model_id}-config"
-    get_or_create_endpoint_config(endpoint_config_name, model_id, instance_type, accelerator_type, accelerator_count)
-
-    try:
-        sm.describe_endpoint(EndpointName=model_id)
-        print(f"Updating existing endpoint: {model_id}")
-        sm.update_endpoint(
-            EndpointName=model_id,
-            EndpointConfigName=endpoint_config_name
-        )
-    except sm.exceptions.ClientError:
-        print("Creating new endpoint...")
-        sm.create_endpoint(
-            EndpointName=model_id,
-            EndpointConfigName=endpoint_config_name
-        )
-    print(f"Model deployed to endpoint: {model_id}")
-    return model_id
+def deploy_model_to_endpoint(model, model_id: str, instance_type: str):
+    """Deploys a model to a SageMaker endpoint using LMI."""
+    endpoint_name = sagemaker.utils.name_from_base(model_id)
+    predictor = model.deploy(
+        initial_instance_count=1,
+        instance_type=instance_type,
+        endpoint_name=endpoint_name,
+    )
+    return predictor
 
 
 def configure_autoscaling(endpoint_name: str, min_capacity: int, max_capacity: int):
+    """Configures autoscaling for the LMI endpoint."""
     client = boto3.client("application-autoscaling")
 
     resource_id = f"endpoint/{endpoint_name}/variant/AllTraffic"
@@ -98,6 +83,7 @@ def configure_autoscaling(endpoint_name: str, min_capacity: int, max_capacity: i
 
 
 def run_aws_deploy_job(config):
+    """Runs the LMI deployment job by creating and deploying a model to SageMaker."""
     base_model = config['model']['base_model']
     model_id = config['model']['model_id']
     region = config['deploy']['region']
@@ -105,31 +91,42 @@ def run_aws_deploy_job(config):
     account_id = get_aws_account_id()
     role_arn = f"arn:aws:iam::{account_id}:role/{iam_role}"
     infra_config = model_map[base_model]["aws_infra"]
-    image_uri = model_map[base_model]["images"]["serve"]
+    
+    # Use the LMI container image
+    image_uri = "763104351884.dkr.ecr.us-west-2.amazonaws.com/djl-inference:0.25.0-lmi-deepspeed0.10.0-cu118"
+    
     instance_type = infra_config['instance_type']
-    accelerator_type = infra_config.get('accelerator_type')
+    # accelerator_type = infra_config.get('accelerator_type')
     accelerator_count = infra_config.get('accelerator_count', 1)
     dtype = "float16" if not infra_config.get('dtype') else infra_config.get('dtype')
-    autoscale = config['deploy'].get('autoscale', False)
-    min_capacity = infra_config.get('min_replica_count', 1)
-    max_capacity = infra_config.get('max_replica_count', 2)
+    # autoscale = config['deploy'].get('autoscale', False)
+    # min_capacity = infra_config.get('min_replica_count', 1)
+    # max_capacity = infra_config.get('max_replica_count', 2)
 
+    # LMI specific environment variables
     env_vars = {
-        "MODEL_NAME": base_model,
-        "DTYPE": dtype
+        "MODEL_ID": base_model,
+        "DTYPE": dtype,
+        "OPTION_MODEL_LOADING_TIMEOUT": "3600",
+        "OPTION_ROLLING_BATCH": "lmi-dist",
+        "OPTION_MAX_ROLLING_BATCH_SIZE": "32",
+        "OPTION_TENSOR_PARALLEL_DEGREE": str(accelerator_count),
+        "OPTION_LOAD_IN_8BIT": "true" if dtype == "int8" else "false",
+        "OPTION_LOAD_IN_4BIT": "true" if dtype == "int4" else "false"
     }
 
     boto3.setup_default_session(region_name=region)
 
-    # Register the model
-    model_name = create_model_from_custom_container(model_id, image_uri, env_vars, role_arn)
+    # Register the model with LMI container
+    model = create_model_from_lmi_container(base_model, env_vars, role_arn)
 
     # Deploy to endpoint
-    endpoint_name = deploy_model_to_endpoint(model_name, model_id, instance_type,
-                                             accelerator_type, accelerator_count)
+    predictor = deploy_model_to_endpoint(model, model_id, instance_type)
+    endpoint_name = predictor.endpoint_name
+    print(predictor)
+    # # Optional autoscaling
+    # if autoscale:
+    #     configure_autoscaling(endpoint_name, min_capacity=min_capacity, max_capacity=max_capacity)
 
-    # Optional autoscaling
-    if autoscale:
-        configure_autoscaling(endpoint_name, min_capacity=min_capacity, max_capacity=max_capacity)
-
+    # return endpoint_name
     return endpoint_name

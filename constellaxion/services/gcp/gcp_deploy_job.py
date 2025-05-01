@@ -1,8 +1,8 @@
-import os
 from google.cloud import aiplatform
 from constellaxion.models.model_map import model_map
 
 def create_model_from_custom_container(model_name: str, image_uri: str, env_vars: dict):
+    """Creates a Vertex AI model from a custom container image."""
     print("Creating model from custom container...")
 
     # Define the container and model
@@ -30,7 +30,7 @@ def deploy_model_to_endpoint(model,
                              replica_count: int,
                              service_account: str
                              ):
-
+    """Deploys a model to a Vertex AI endpoint with specified compute resources."""
     # Check if the endpoint exists, create it if not
     endpoints = aiplatform.Endpoint.list(
         filter=f'display_name="{model_id}"')
@@ -44,7 +44,7 @@ def deploy_model_to_endpoint(model,
         print(f"Created new endpoint: {endpoint.display_name}")
 
     # Deploy the model to the endpoint
-    deployed_model = model.deploy(
+    model.deploy(
         endpoint=endpoint,
         deployed_model_display_name=model_id,
         traffic_split={"0": 100},  # Route all traffic to this model
@@ -61,14 +61,14 @@ def deploy_model_to_endpoint(model,
 
 
 def run_gcp_deploy_job(config):
+    """Runs the GCP deployment job by creating and deploying a model to Vertex AI."""
     project_id = config['deploy']['project_id']
     base_model = config['model']['base_model']
     location = config['deploy']['location']
-    bucket_name = config['deploy']['bucket_name']
     model_id = config['model']['model_id']
     service_account = config['deploy']['service_account']
     infra_config = model_map[base_model]["gcp_infra"]
-    image_uri = model_map[base_model]["images"]["serve"]
+    image_uri = infra_config["images"]["serve"]
     machine_type = infra_config['machine_type']
     accelerator_type = infra_config['accelerator_type']
     accelerator_count = infra_config['accelerator_count']

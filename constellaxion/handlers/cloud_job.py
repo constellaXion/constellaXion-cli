@@ -1,6 +1,5 @@
+"""Module for handling cloud deployment jobs across different providers (AWS, GCP)."""
 import json
-import random
-import string
 from abc import abstractmethod, ABC
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
@@ -8,26 +7,30 @@ from constellaxion.handlers.training import Training
 from constellaxion.services.gcp.train_job import run_training_job
 from constellaxion.services.gcp.serve_job import run_serving_job
 from constellaxion.services.gcp.gcp_deploy_job import run_gcp_deploy_job
-from constellaxion.services.gcp.prompt_model import send_prompt
+from constellaxion.services.gcp.prompt_gcp_model import send_gcp_prompt
+from constellaxion.services.aws.prompt_aws_model import send_aws_prompt
 from constellaxion.services.aws.aws_deploy_job import run_aws_deploy_job
 
 class BaseCloudJob(ABC):
+    """Base class for cloud deployment jobs providing common interface for model deployment."""
     def __init__(self):
         pass
 
     @abstractmethod
-    def run():
+    @staticmethod
+    def run(config):
+        """Run model finetuning on GCP"""
         pass
 
     @abstractmethod
-    def create_config(model: Model, dataset: Dataset):
+    @staticmethod
+    def create_config(config):
+        """Create a JSON configuration file from model and dataset attributes."""
         pass
 
 
 class GCPDeployJob(BaseCloudJob):
-    def __init__(self):
-        super().__init__()
-
+    """GCP deployment job class."""
     @staticmethod
     def run(config):
         """Run model finetuning on GCP"""
@@ -38,15 +41,15 @@ class GCPDeployJob(BaseCloudJob):
         """Serve finetuned model on GCP"""
         endpoint_path = run_serving_job(config)
         config['deploy']['endpoint_path'] = endpoint_path
-        with open("job.json", "w") as f:
+        with open("job.json", "w", encoding='utf-8') as f:
             json.dump(config, f, indent=4)
 
     @staticmethod
     def deploy(config):
         """Deploy foundation model to GCP"""
-        endpoint_path = run_deploy_job(config)
+        endpoint_path = run_gcp_deploy_job(config)
         config['deploy']['endpoint_path'] = endpoint_path
-        with open("job.json", "w") as f:
+        with open("job.json", "w", encoding='utf-8') as f:
             json.dump(config, f, indent=4)
 
     @staticmethod
@@ -54,7 +57,7 @@ class GCPDeployJob(BaseCloudJob):
         """Send prompt to model"""
         endpoint_path = config['deploy']['endpoint_path']
         location = config['deploy']['location']
-        response = send_prompt(prompt, endpoint_path, location)
+        response = send_gcp_prompt(prompt, endpoint_path, location)
         return response
 
     @staticmethod
@@ -79,37 +82,36 @@ class GCPDeployJob(BaseCloudJob):
                 "service_account": service_account
             }
         }
-        with open("job.json", "w") as f:
+        with open("job.json", "w", encoding='utf-8') as f:
             json.dump(job_config, f, indent=4)
 
 
 class AWSDeployJob(BaseCloudJob):
-    def __init__(self, ):
-        super().__init__()
-        pass
+    """AWS deployment job class."""
 
     @staticmethod
-    def run(config):
+    def run(*args, **kwargs):
         """Run model finetuning on AWS"""
-        pass
 
     @staticmethod
-    def serve(config):
+    def serve(*args, **kwargs):
         """Serve finetuned model on AWS"""
-        pass
 
     @staticmethod
     def deploy(config):
         """Deploy foundation model to AWS"""
         endpoint_path = run_aws_deploy_job(config)
         config['deploy']['endpoint_path'] = endpoint_path
-        with open("job.json", "w") as f:
+        with open("job.json", "w", encoding='utf-8') as f:
             json.dump(config, f, indent=4)
 
     @staticmethod
     def prompt(prompt, config):
         """Send prompt to model"""
-        pass
+        endpoint_path = config['deploy']['endpoint_path']
+        region = config['deploy']['region']
+        response = send_aws_prompt(prompt, endpoint_path, region)
+        return response
 
     @staticmethod
     def create_config(model: Model, region: str, dataset: Dataset, training: Training):
@@ -130,5 +132,5 @@ class AWSDeployJob(BaseCloudJob):
                 "iam_role": "constellaxion-admin"
             }
         }
-        with open("job.json", "w") as f:
+        with open("job.json", "w", encoding='utf-8') as f:
             json.dump(job_config, f, indent=4)
