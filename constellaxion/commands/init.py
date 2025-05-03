@@ -104,13 +104,13 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
     if platform == 'gcp':
         gcp = job_config.get('gcp')
         project_id = gcp.get('project_id')
-        location = gcp.get('location')
+        region = gcp.get('region')
         if not project_id:
             click.echo(
                 "Error: Missing value, job.gcp.project_id in model.yaml file", err=True)
-        if not location:
+        if not region:
             click.echo(
-                "Error: Missing value, job.gcp.location in model.yaml file", err=True)
+                "Error: Missing value, job.gcp.region in model.yaml file", err=True)
 
         click.echo(f"Initializing resources for project: {project_id}")
         try:
@@ -123,7 +123,7 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
         job = GCPDeployJob()
         # Create job config
         job.create_config(model, project_id,
-                          location, service_account_email, dataset, training)
+                          region, service_account_email, dataset, training)
 
     # Initialize AWS resources
     elif platform == 'aws':

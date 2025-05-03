@@ -64,7 +64,7 @@ def run_gcp_deploy_job(config):
     """Runs the GCP deployment job by creating and deploying a model to Vertex AI."""
     project_id = config['deploy']['project_id']
     base_model = config['model']['base_model']
-    location = config['deploy']['location']
+    region = config['deploy']['region']
     model_id = config['model']['model_id']
     service_account = config['deploy']['service_account']
     infra_config = model_map[base_model]["gcp_infra"]
@@ -79,7 +79,7 @@ def run_gcp_deploy_job(config):
         "DTYPE": dtype
     }
     # Initialize the Vertex AI SDK
-    aiplatform.init(project=project_id, location=location)
+    aiplatform.init(project=project_id, location=region)
     # # Download the model
     model = create_model_from_custom_container(base_model, image_uri, env_vars)
     # Deploy model to endpoint

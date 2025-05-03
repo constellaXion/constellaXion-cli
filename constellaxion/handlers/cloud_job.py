@@ -55,12 +55,12 @@ class GCPDeployJob(BaseCloudJob):
     def prompt(prompt, config):
         """Send prompt to model"""
         endpoint_path = config['deploy']['endpoint_path']
-        location = config['deploy']['location']
-        response = send_gcp_prompt(prompt, endpoint_path, location)
+        region = config['deploy']['region']
+        response = send_gcp_prompt(prompt, endpoint_path, region)
         return response
 
     @staticmethod
-    def create_config(model: Model, project_id: str, location: str, service_account: str, dataset: Dataset, training: Training):
+    def create_config(model: Model, project_id: str, region: str, service_account: str, dataset: Dataset, training: Training):
         """Create a JSON configuration file from model and dataset attributes."""
         bucket_name = f"constellaxion-{project_id}"
         job_config = {
@@ -73,7 +73,7 @@ class GCPDeployJob(BaseCloudJob):
             "deploy": {
                 "provider": "gcp",
                 "project_id": project_id,
-                "location": location,
+                "region": region,
                 "bucket_name": bucket_name,
                 "staging_dir": f"{model.id}/staging",
                 "experiments_dir": f"{model.id}/experiments",
