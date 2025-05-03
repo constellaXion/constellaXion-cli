@@ -16,14 +16,13 @@ class BaseCloudJob(ABC):
     def __init__(self):
         pass
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def run(config):
         """Run model finetuning on GCP"""
         pass
-
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def create_config(config):
         """Create a JSON configuration file from model and dataset attributes."""
         pass
