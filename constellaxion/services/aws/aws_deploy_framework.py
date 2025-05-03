@@ -91,10 +91,10 @@ def run_aws_deploy_job(config):
     account_id = get_aws_account_id()
     role_arn = f"arn:aws:iam::{account_id}:role/{iam_role}"
     infra_config = model_map[base_model]["aws_infra"]
-    
+
     # Use the LMI container image
     image_uri = "763104351884.dkr.ecr.us-west-2.amazonaws.com/djl-inference:0.25.0-lmi-deepspeed0.10.0-cu118"
-    
+
     instance_type = infra_config['instance_type']
     # accelerator_type = infra_config.get('accelerator_type')
     accelerator_count = infra_config.get('accelerator_count', 1)
