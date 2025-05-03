@@ -1,31 +1,8 @@
-import os
 from google.cloud import aiplatform
-from constellaxion.services.gcp.model_map import model_map
-
-# def download_model(hf_path: str, model_dir: str):
-#     """Downloads a Hugging Face model and tokenizer."""
-#     print("Downloading model...")
-#     model = AutoModelForSequenceClassification.from_pretrained(hf_path)
-#     tokenizer = AutoTokenizer.from_pretrained(hf_path)
-
-#     os.makedirs(model_dir, exist_ok=True)
-#     model.save_pretrained(model_dir)
-#     tokenizer.save_pretrained(model_dir)
-#     print(f"Model saved to {model_dir}/")
-
-
-# def upload_to_gcs(model_dir: str, bucket_name: str, gcs_path: str):
-#     """Uploads the model to Google Cloud Storage."""
-#     print(f"Uploading model to {gcs_path}...")
-#     storage_client = storage.Client()
-#     bucket = storage_client.bucket(bucket_name)
-
-#     uploader = GCSUploadHandler(model_dir, gcs_path)
-#     uploader.upload_directory(model_dir)
-#     print(f"Uploaded model to {gcs_path}")
-
+from constellaxion.models.model_map import model_map
 
 def create_model_from_custom_container(model_name: str, image_uri: str, env_vars: dict):
+    """Creates a Vertex AI model from a custom container image."""
     print("Creating model from custom container...")
 
     # Define the container and model
@@ -53,7 +30,7 @@ def deploy_model_to_endpoint(model,
                              replica_count: int,
                              service_account: str
                              ):
-
+    """Deploys a model to a Vertex AI endpoint with specified compute resources."""
     # Check if the endpoint exists, create it if not
     endpoints = aiplatform.Endpoint.list(
         filter=f'display_name="{model_id}"')
@@ -67,7 +44,7 @@ def deploy_model_to_endpoint(model,
         print(f"Created new endpoint: {endpoint.display_name}")
 
     # Deploy the model to the endpoint
-    deployed_model = model.deploy(
+    model.deploy(
         endpoint=endpoint,
         deployed_model_display_name=model_id,
         traffic_split={"0": 100},  # Route all traffic to this model
@@ -83,15 +60,15 @@ def deploy_model_to_endpoint(model,
     return endpoint.resource_name
 
 
-def run_deploy_job(config):
+def run_gcp_deploy_job(config):
+    """Runs the GCP deployment job by creating and deploying a model to Vertex AI."""
     project_id = config['deploy']['project_id']
     base_model = config['model']['base_model']
-    location = config['deploy']['location']
-    bucket_name = config['deploy']['bucket_name']
+    region = config['deploy']['region']
     model_id = config['model']['model_id']
     service_account = config['deploy']['service_account']
     infra_config = model_map[base_model]["gcp_infra"]
-    image_uri = model_map[base_model]["images"]["serve"]
+    image_uri = infra_config["images"]["serve"]
     machine_type = infra_config['machine_type']
     accelerator_type = infra_config['accelerator_type']
     accelerator_count = infra_config['accelerator_count']
@@ -102,12 +79,8 @@ def run_deploy_job(config):
         "DTYPE": dtype
     }
     # Initialize the Vertex AI SDK
-    aiplatform.init(project=project_id, location=location)
+    aiplatform.init(project=project_id, location=region)
     # # Download the model
-    # download_model(hf_path, model_path)
-    # # Upload the model to GCS
-    # upload_to_gcs(model_path, bucket_name, model_path)
-    # Register a model
     model = create_model_from_custom_container(base_model, image_uri, env_vars)
     # Deploy model to endpoint
     endpoint_path = deploy_model_to_endpoint(model, model_id,

@@ -20,6 +20,35 @@ def get_current_user_arn():
         print(f"Details: {e}")
         raise
 
+def add_inline_ecr_policy(iam_client):
+    """Adds an inline ECR access policy to the Constellaxion IAM role."""
+    ecr_inline_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ecr:GetAuthorizationToken",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+
+    try:
+        iam_client.put_role_policy(
+            RoleName=ROLE_NAME,
+            PolicyName="ConstellaxionECRAccess",
+            PolicyDocument=json.dumps(ecr_inline_policy)
+        )
+        print("Inline ECR access policy attached to role.")
+    except ClientError as e:
+        print(f"Failed to attach inline policy: {e}")
+        raise
+
 
 def create_iam_role():
     """Create the Constellaxion IAM role with proper trust and attach policies."""
@@ -62,8 +91,12 @@ def create_iam_role():
             print(f"Failed to attach policy {policy_arn}: {e}")
             raise
 
+    # Attach inline ECR policy
+    add_inline_ecr_policy(iam)
+
 
 def create_aws_permissions():
+    """Creates the Constellaxion IAM role and attaches necessary policies."""
     try:
         user_arn = get_current_user_arn()
         print(f"Authenticated as: {user_arn}")
@@ -71,3 +104,4 @@ def create_aws_permissions():
         print("IAM initialization complete.")
     except Exception as e:
         print(f"Initialization failed: {e}")
+

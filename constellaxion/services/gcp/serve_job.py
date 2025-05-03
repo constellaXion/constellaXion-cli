@@ -1,5 +1,5 @@
 from google.cloud import aiplatform
-from constellaxion.services.gcp.model_map import model_map
+from constellaxion.models.model_map import model_map
 
 
 def create_model_from_custom_container(model_name: str, image_uri: str, env_vars: dict):

@@ -1,6 +1,6 @@
 import json
 from google.cloud import aiplatform, storage
-from constellaxion.services.gcp.model_map import model_map
+from constellaxion.models.model_map import model_map
 from google.cloud import storage
 import pkg_resources
 
@@ -123,7 +123,7 @@ def create_training_job(
 
     # Read existing job.json
     try:
-        with open('job.json', 'r') as f:
+        with open('job.json', 'r', encoding='utf-8') as f:
             job_config = json.load(f)
     except FileNotFoundError:
         job_config = {}
@@ -136,7 +136,7 @@ def create_training_job(
     job_config['training']['tensorboard_url'] = tensorboard_url
 
     # Write updated config back to job.json
-    with open('job.json', 'w') as f:
+    with open('job.json', 'w', encoding='utf-8') as f:
         json.dump(job_config, f, indent=4)
 
     job = aiplatform.CustomJob.from_local_script(
@@ -168,13 +168,13 @@ def run_training_job(config):
     # Upload data to GCP
     upload_data_to_gcp(config)
     project_id = config['deploy']['project_id']
-    location = config['deploy']['location']
+    location = config['deploy']['region']
     experiment_name = f"{config['model']['model_id']}-lora-{config['training']['epochs']}e"
     # Add this before initializing the experiment
     create_vertex_dataset(experiment_name, bucket_name, train_set, val_set, test_set, location)
     create_training_job(
-        project=config['deploy']['project_id'],
-        location=config['deploy']['location'],
+        project=project_id,
+        location=location,
         staging_bucket=f"gs://{bucket_name}/{config['deploy']['staging_dir']}",
         display_name=config['model']['model_id'],
         script_path=script_path,
