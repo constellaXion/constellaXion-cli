@@ -28,20 +28,19 @@ def model():
 @model.command()
 def prompt():
     """Prompt a deployed model"""
+    config = get_job()
+    cloud = config['deploy']['provider']
+    model_id = config['model']['model_id']
+    click.clear() # Clear the screen
+    click.echo(click.style(
+        f"Send a prompt to {model_id}", fg="yellow", bold=True))
+    click.echo(click.style(
+        "Type 'exit' or 'quit' to quit"))
     while True:
-        config = get_job()
-        cloud = config['deploy']['provider']
-        model_id = config['model']['model_id']
-        click.clear() # Clear the screen
-        click.echo(click.style(
-            f"Send a prompt to {model_id}", fg="yellow", bold=True))
-        click.echo(click.style(
-            "Type 'exit' or 'quit' to quit"))
         if cloud and config['deploy']['endpoint_path']:
             response = ""
             click.echo(click.style("\nPrompt: ", fg="green"), nl=False)
             txt = input()
-            print(txt)
             if txt.lower() in ['exit', 'quit']:
                 break
 
@@ -55,7 +54,7 @@ def prompt():
         else:
             click.echo(click.style(
                 "Error: Trained model not found. Try training and deploying a model first", fg="red"))
-        break
+            break
 
 
 @model.command()
