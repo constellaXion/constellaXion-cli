@@ -15,7 +15,7 @@
 
 The fastest way to **Train, Deploy and Serve** Open Source Language Models to your Cloud environment
 
-## ⚡️ Features
+# ⚡️ Features
 Configure and access the most popular open source LLMs with a few simple commands
 
 - 📄 YAML-based configuration
@@ -29,6 +29,28 @@ Configure and access the most popular open source LLMs with a few simple command
 - 💬 Prompt your models with ease
 
 
+# 📚 The Stack
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" width="100"/></td>
+      <td align="center"><img src="https://www.vectorlogo.zone/logos/google_cloud/google_cloud-ar21.svg" width="140"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" width="100"/></td>
+      <td align="center"><img src="https://docs.vllm.ai/en/latest/_images/vllm-logo-text-light.png" width="150"/></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/deepjavalibrary/djl/master/website/img/djl.png" width="100"/></td>
+    </tr>
+  </table>
+
+  <p>
+    ConstellaXion leverages industry-leading technologies to provide a seamless LLM deployment experience. Deploy to AWS or GCP, serve models efficiently with vLLM, access the latest models from Hugging Face, and utilize DJL's powerful serving capabilities.
+  </p>
+</div>
+
+
+# 🔧 Quick Start
+
 ## Installation
 
 Install the package:
@@ -37,7 +59,8 @@ Install the package:
 pip install constellaxion
 ```
 
-## 🧾 YAML Configuration Format
+
+## YAML Configuration Format
 
 Create a `model.yaml` file to describe your project. Example:
 
@@ -63,7 +86,7 @@ deploy:
 
 model (required): The ID of the model you want to use.
 
-base (required): The base model you want to use.
+base (required): The base model you want to use (HuggingFace path).
 
 dataset (required for finetuning): The path to your training, validation, and test data.
 - All 3 datasets must be provided as CSV files with the following columns: `prompt`, `response`.
@@ -76,45 +99,44 @@ deploy (required for deployment): The Deployment target. Currently only GCP is s
   - location: The GCP region to deploy the model to.
 
 ## Usage
-1. Initialize your project:
+Initialize your project:
 
-    ```sh
-    constellaXion init
-    ```
-
-2. Print the current training and serving configuration from your YAML file:
-
-    ```sh
-    constallaXion model view
-    ```
-
-3. Run training job (only if you have provided a dataset):
-
-    ```sh
-    constallaXion model train
-    ```
-
-4. Serve model (for finetuned models only):
-
-    ```sh
-    constallaXion model serve
-    ```
-
-5. Deploy a foundation model without finetuning:
-
-    ```sh
-    constellaXion model deploy
-    ```
-
-6. Prompt model:
-
-    ```sh
-    constallaXion model prompt
-    ```
+```sh
+constellaXion init
+```
 
 
+View your current model configuration:
+```sh
+constallaXion model view
+```
 
-## 💡 Example Workflow
+
+Deploy a foundation model without finetuning:
+```sh
+constellaXion model deploy
+```
+
+
+Run fine-tuninig job (Dataset and training configs required):
+```sh
+constallaXion model train
+```
+
+
+Serve a fine-tuned model:
+```sh
+constallaXion model serve
+```
+
+Prompt model:
+```sh
+constallaXion model prompt
+```
+
+
+
+## Example Workflow
 Create model.yaml file: to fit your use case
 ```sh
 constellaXion init
