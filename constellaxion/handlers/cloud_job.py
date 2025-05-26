@@ -68,8 +68,24 @@ class GCPDeployJob(BaseCloudJob):
                 "model_id": model.id,
                 "base_model": model.base_model,
             },
-            "dataset": dataset.to_dict() if dataset else None,
-            "training": training.to_dict() if training else None,
+            "dataset": {
+                "train": {
+                    "local": dataset.train,
+                    "cloud": f"{model.id}/data/train.csv"
+                },
+                "val": {
+                    "local": dataset.val,
+                    "cloud": f"{model.id}/data/val.csv"
+                },
+                "test": {
+                    "local": dataset.test,
+                    "cloud": f"{model.id}/data/test.csv"
+                }
+            },
+            "training": {
+                "epochs": training.epochs,
+                "batch_size": training.batch_size,
+            },
             "deploy": {
                 "provider": "gcp",
                 "project_id": project_id,

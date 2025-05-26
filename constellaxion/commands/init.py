@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.text import Text
 from rich.panel import Panel
 from halo import Halo
-
+from tabulate import tabulate
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.training import Training
@@ -136,6 +136,15 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
         # Create job config
         job.create_config(model, region, dataset, training)
 
+def show_after_init_command_table():
+    """Show the command table"""
+    table = [
+        ["Command", "Description"],
+        ["constellaXion model view", "View the current model configuration"],
+        ["constellaXion model train", "Run finetuning job"],
+        ["constellaXion model deploy", "Deploy a foundation model"],
+    ]
+    click.echo(tabulate(table, headers="firstrow", tablefmt="grid"))
 
 @click.command(help="Initialize a new model")
 def init():
@@ -187,12 +196,11 @@ def init():
             spinner.succeed('Initialization complete!')
             click.echo(
                 click.style(
-                    "Job Config created. Run 'constellaXion model view' to see details "
-                    "or 'constellaXion model train' to start training your model",
+                    "Job Config created",
                     fg="green"
                 )
             )
-
+            show_after_init_command_table()
     # Parse values and excecute commands
     except yaml.YAMLError as e:
         click.echo(f"Error parsing model.yaml: {str(e)}", err=True)

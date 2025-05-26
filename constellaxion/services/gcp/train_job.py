@@ -1,8 +1,26 @@
 import json
 from google.cloud import aiplatform, storage
-from constellaxion.models.model_map import model_map
-from google.cloud import storage
 import pkg_resources
+from constellaxion.models.model_map import model_map
+
+# finetune_packages = [
+#     "constellaxion-utils==0.1.3",
+#     "trl==0.15.2",
+#     "transformers",
+#     "dataset",
+#     "peft",
+#     "google-cloud-storage",
+#     "google-cloud-aiplatform",
+#     "python-json-logger",
+#     "watchdog",
+#     "gcsfs",
+#     "unsloth",
+#     "bitsandbytes",
+#     "xformers==0.0.29.post3",
+#     "accelerate",
+#     "triton",
+#     "cut_cross_entropy",
+# ]
 
 
 def create_vertex_dataset(model_id: str, bucket_name: str, train_set: str, val_set: str, test_set: str, location: str) -> None:
@@ -78,7 +96,7 @@ def create_training_job(
         script_path: str,
         container_uri: str,
         service_account: str,
-        requirements: str,
+        # requirements: str,
         machine_type: str,
         accelerator_type: str,
         accelerator_count: int,
@@ -86,6 +104,7 @@ def create_training_job(
         experiment_name: str,
         args: list[str]
 ) -> None:
+    """Creates and runs a Vertex AI custom training job with TensorBoard integration."""
     aiplatform.init(project=project, location=location,
                     staging_bucket=staging_bucket)
 
@@ -108,7 +127,7 @@ def create_training_job(
         experiment.assign_backing_tensorboard(tensorboard)
 
     tensorboard_resource_name = tensorboard.gca_resource.name
-
+    print(f"Original Tensorboard resource name: {tensorboard_resource_name}")
     # Extract experiment ID from the resource name
     experiment_id = experiment.resource_name.split('/')[-1]
 
@@ -118,8 +137,12 @@ def create_training_job(
     tensorboard_id = parts[-1]
 
     # Generate Tensorboard URL in the correct format
-    tensorboard_url = f"https://{location}.tensorboard.googleusercontent.com/experiment/projects+{project_number}+locations+{location}+tensorboards+{tensorboard_id}+experiments+{experiment_id}/#scalars"
-    print(tensorboard_resource_name)
+    tensorboard_url = (
+        f"https://{location}.tensorboard.googleusercontent.com/experiment/"
+        f"projects+{project_number}+locations+{location}+tensorboards+{tensorboard_id}"
+        f"+experiments+{experiment_id}/#scalars"
+    )
+    print(f"Tensorboard URL: {tensorboard_url}")
 
     # Read existing job.json
     try:
@@ -143,33 +166,43 @@ def create_training_job(
         display_name=display_name,
         script_path=script_path,
         container_uri=container_uri,
-        requirements=requirements,
+        # requirements=requirements,
         machine_type=machine_type,
         accelerator_type=accelerator_type,
         accelerator_count=accelerator_count,
         replica_count=replica_count,
         args=args,
     )
+    print(f"Tensorboard resource name: {tensorboard_resource_name}")
     job.run(service_account=service_account,
             tensorboard=tensorboard_resource_name)
 
 
 def run_training_job(config):
-    base_model = config['model']['base_model']
+    """
+    Run a training job for a given model.
+
+    Args:
+        config (dict): Configuration dictionary with model and dataset details.
+    """
+    base_model_name = config['model']['base_model']
     bucket_name = config['deploy']['bucket_name']
     model_id = config['model']['model_id']
     train_set = config['dataset']['train']['cloud']
     val_set = config['dataset']['val']['cloud']
     test_set = config['dataset']['test']['cloud']
     script_path = pkg_resources.resource_filename(
-        "constellaxion.models.tinyllama_1b.gcp", "lora.py")
-    # script_path = model_map[base_model]["lora"]
-    infra_config = model_map[base_model]["infra"]
+        "constellaxion.models.scripts.gcp", "lora.py")
+    infra_config = model_map[base_model_name]["gcp_infra"]
+    dtype = model_map[base_model_name]['dtype']
+    max_seq_length = model_map[base_model_name]['max_seq_length']
+    base_model = model_map[base_model_name]['base_model']
     # Upload data to GCP
     upload_data_to_gcp(config)
     project_id = config['deploy']['project_id']
     location = config['deploy']['region']
     experiment_name = f"{config['model']['model_id']}-lora-{config['training']['epochs']}e"
+    
     # Add this before initializing the experiment
     create_vertex_dataset(experiment_name, bucket_name, train_set, val_set, test_set, location)
     create_training_job(
@@ -178,8 +211,8 @@ def run_training_job(config):
         staging_bucket=f"gs://{bucket_name}/{config['deploy']['staging_dir']}",
         display_name=config['model']['model_id'],
         script_path=script_path,
-        requirements=infra_config['requirements'],
-        container_uri=infra_config['train_image_uri'],
+        # requirements=finetune_packages,
+        container_uri=infra_config['images']['finetune'],
         service_account=config['deploy']['service_account'],
         machine_type=infra_config['machine_type'],
         accelerator_type=infra_config['accelerator_type'],
@@ -192,6 +225,9 @@ def run_training_job(config):
             f"--train-set={config['dataset']['train']['cloud']}",
             f"--val-set={config['dataset']['val']['cloud']}",
             f"--test-set={config['dataset']['test']['cloud']}",
+            f"--dtype={dtype}",
+            f"--max-seq-length={max_seq_length}",
+            f"--base-model={base_model}",
             f"--bucket-name={bucket_name}",
             f"--model-path={config['deploy']['model_path']}",
             f"--experiments-dir={config['deploy']['experiments_dir']}",

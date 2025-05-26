@@ -1,3 +1,5 @@
+"""Configuration mapping for supported foundation models and their infrastructure requirements."""
+
 model_map = {
     # "TinyLlama-1B": {
     #     "dir": "tinyllama_1b",
@@ -23,15 +25,18 @@ model_map = {
     #         "replica_count": 1
     #     }
     # },
-    "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T": {
-        "gcp_infra": {
-            "machine_type": "n1-highmem-8",
-      "accelerator_type": "NVIDIA_TESLA_T4",
+  "@tinyllama-bnb-4bit": {
+      "base_model": "unsloth/tinyllama-bnb-4bit",
+      "dtype": None,
+      "max_seq_length": 4096,
+      "gcp_infra": {
+      "machine_type": "g2-standard-8",
+      "accelerator_type": "NVIDIA_L4",
       "accelerator_count": 1,
       "replica_count": 1,
       "images": {
         "serve": "europe-west2-docker.pkg.dev/constellaxion/serving-images/foundation-model:latest",
-        "finetune": ""
+        "finetune": "europe-west2-docker.pkg.dev/constellaxion/finetuning/unsloth-base-model:latest"
         }
     },
     "aws_infra": {
@@ -46,7 +51,8 @@ model_map = {
       }
     }
   },
-  "mistralai/Mistral-7B-v0.1": {
+  "@Mistral-7B-v0.1": {
+    "base_model": "mistralai/Mistral-7B-v0.1",
     "gcp_infra": {
       "machine_type": "n1-highmem-8",
       "accelerator_type": "NVIDIA_TESLA_T4",
@@ -71,7 +77,8 @@ model_map = {
       }
     }
   },
-  "mistralai/Mixtral-8x7B": {
+  "@Mixtral-8x7B": {
+    "base_model": "mistralai/Mixtral-8x7B",
     "gcp_infra": {
       "machine_type": "n1-highmem-16",
       "accelerator_type": "NVIDIA_A100_40GB",
@@ -94,7 +101,8 @@ model_map = {
       }
     }
   },
-  "Qwen/Qwen1.5-7B": {
+  "@Qwen1.5-7B": {
+    "base_model": "Qwen/Qwen1.5-7B",
     "gcp_infra": {
       "machine_type": "n1-highmem-8",
       "accelerator_type": "NVIDIA_TESLA_T4",
@@ -117,7 +125,8 @@ model_map = {
       }
     }
   },
-  "Qwen/Qwen1.5-14B": {
+  "@Qwen1.5-14B": {
+    "base_model": "Qwen/Qwen1.5-14B",
     "gcp_infra": {
       "machine_type": "n1-highmem-16",
       "accelerator_type": "NVIDIA_A100_40GB",
@@ -140,7 +149,8 @@ model_map = {
       }
     }
   },
-  "meta-llama/Llama-2-7b-chat-hf": {
+  "@Llama-2-7b-chat-hf": {
+    "base_model": "meta-llama/Llama-2-7b-chat-hf",
     "gcp_infra": {
       "machine_type": "g2-standard-8",
       "accelerator_type": "NVIDIA_L4",
@@ -163,7 +173,8 @@ model_map = {
       }
     }
   },
-  "meta-llama/Llama-2-13b-hf": {
+  "@Llama-2-13b-hf": {
+    "base_model": "meta-llama/Llama-2-13b-hf",
     "gcp_infra": {
       "machine_type": "n1-highmem-16",
       "accelerator_type": "NVIDIA_A100_40GB",
@@ -186,7 +197,8 @@ model_map = {
       }
     }
   },
-  "meta-llama/Llama-2-70b-chat-hf": {
+  "@Llama-2-70b-chat-hf": {
+    "base_model": "meta-llama/Llama-2-70b-chat-hf",
     "gcp_infra": {
       "machine_type": "n1-highmem-64",
       "accelerator_type": "NVIDIA_A100_80GB",
@@ -209,7 +221,8 @@ model_map = {
       }
     }
   },
-  "tiiuae/falcon-7b-instruct": {
+  "@falcon-7b-instruct": {
+    "base_model": "tiiuae/falcon-7b-instruct",
     "gcp_infra": {
       "machine_type": "g2-standard-8",
       "accelerator_type": "NVIDIA_L4",
@@ -232,7 +245,8 @@ model_map = {
       }
     }
   },
-  "tiiuae/falcon-40b-instruct": {
+  "@falcon-40b-instruct": {
+    "base_model": "tiiuae/falcon-40b-instruct",
     "gcp_infra": {
       "machine_type": "n1-highmem-32",
       "accelerator_type": "NVIDIA_A100_40GB",
@@ -255,7 +269,8 @@ model_map = {
       }
     }
   },
-  "google/gemma-3-4b-it": {
+  "@gemma-3-4b-it": {
+    "base_model": "google/gemma-3-4b-it",
     "gcp_infra": {
       "machine_type": "g2-standard-8",
       "accelerator_type": "NVIDIA_L4",

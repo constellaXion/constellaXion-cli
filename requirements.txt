@@ -9,3 +9,4 @@ click
 boto3
 sagemaker
 pynput
+tabulate
