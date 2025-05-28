@@ -1,17 +1,21 @@
 """
 This module provides a class for uploading files to a GCS bucket.
 """
+
 import os
-import time
 import threading
+import time
+
 import gcsfs
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+
 
 class GCSUploaderHandler(FileSystemEventHandler):
     """
     A class that handles file system events and uploads them to a GCS bucket.
     """
+
     def __init__(self, local_dir, gcs_dir):
         self.local_dir = local_dir
         self.gcs_dir = gcs_dir
@@ -46,6 +50,7 @@ class GCSUploaderHandler(FileSystemEventHandler):
             for dir in dirs:
                 self.upload_directory(os.path.join(root, dir))
 
+
 def start_gcs_sync(local_dir, gcs_dir):
     """Sync local directory to GCS bucket"""
     event_handler = GCSUploaderHandler(local_dir, gcs_dir)
@@ -61,6 +66,7 @@ def start_gcs_sync(local_dir, gcs_dir):
         observer.stop()
     observer.join()
 
+
 def start_gcs_sync_thread(local_dir, gcs_dir):
     """Start the GCS sync in a separate thread"""
     os.makedirs(local_dir, exist_ok=True)
@@ -68,4 +74,3 @@ def start_gcs_sync_thread(local_dir, gcs_dir):
         target=start_gcs_sync, args=(local_dir, gcs_dir), daemon=True
     )
     sync_thread.start()
-    

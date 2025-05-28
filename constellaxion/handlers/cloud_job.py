@@ -1,18 +1,22 @@
 """Module for handling cloud deployment jobs across different providers (AWS, GCP)."""
+
+from abc import ABC, abstractmethod
 import json
-from abc import abstractmethod, ABC
-from constellaxion.handlers.model import Model
+
 from constellaxion.handlers.dataset import Dataset
+from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
-from constellaxion.services.gcp.train_job import run_training_job
-from constellaxion.services.gcp.serve_job import run_serving_job
+from constellaxion.services.aws.aws_deploy_job import run_aws_deploy_job
+from constellaxion.services.aws.prompt_aws_model import send_aws_prompt
 from constellaxion.services.gcp.gcp_deploy_job import run_gcp_deploy_job
 from constellaxion.services.gcp.prompt_gcp_model import send_gcp_prompt
-from constellaxion.services.aws.prompt_aws_model import send_aws_prompt
-from constellaxion.services.aws.aws_deploy_job import run_aws_deploy_job
+from constellaxion.services.gcp.serve_job import run_serving_job
+from constellaxion.services.gcp.train_job import run_training_job
+
 
 class BaseCloudJob(ABC):
     """Base class for cloud deployment jobs providing common interface for model deployment."""
+
     def __init__(self):
         pass
 
@@ -21,6 +25,7 @@ class BaseCloudJob(ABC):
     def run(config):
         """Run model finetuning on GCP"""
         pass
+
     @staticmethod
     @abstractmethod
     def create_config(config):
@@ -30,6 +35,7 @@ class BaseCloudJob(ABC):
 
 class GCPDeployJob(BaseCloudJob):
     """GCP deployment job class."""
+
     @staticmethod
     def run(config):
         """Run model finetuning on GCP"""
@@ -39,28 +45,35 @@ class GCPDeployJob(BaseCloudJob):
     def serve(config):
         """Serve finetuned model on GCP"""
         endpoint_path = run_serving_job(config)
-        config['deploy']['endpoint_path'] = endpoint_path
-        with open("job.json", "w", encoding='utf-8') as f:
+        config["deploy"]["endpoint_path"] = endpoint_path
+        with open("job.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
 
     @staticmethod
     def deploy(config):
         """Deploy foundation model to GCP"""
         endpoint_path = run_gcp_deploy_job(config)
-        config['deploy']['endpoint_path'] = endpoint_path
-        with open("job.json", "w", encoding='utf-8') as f:
+        config["deploy"]["endpoint_path"] = endpoint_path
+        with open("job.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
 
     @staticmethod
     def prompt(prompt, config):
         """Send prompt to model"""
-        endpoint_path = config['deploy']['endpoint_path']
-        region = config['deploy']['region']
+        endpoint_path = config["deploy"]["endpoint_path"]
+        region = config["deploy"]["region"]
         response = send_gcp_prompt(prompt, endpoint_path, region)
         return response
 
     @staticmethod
-    def create_config(model: Model, project_id: str, region: str, service_account: str, dataset: Dataset, training: Training):
+    def create_config(
+        model: Model,
+        project_id: str,
+        region: str,
+        service_account: str,
+        dataset: Dataset,
+        training: Training,
+    ):
         """Create a JSON configuration file from model and dataset attributes."""
         bucket_name = f"constellaxion-{project_id}"
         job_config = {
@@ -71,16 +84,10 @@ class GCPDeployJob(BaseCloudJob):
             "dataset": {
                 "train": {
                     "local": dataset.train,
-                    "cloud": f"{model.id}/data/train.csv"
+                    "cloud": f"{model.id}/data/train.csv",
                 },
-                "val": {
-                    "local": dataset.val,
-                    "cloud": f"{model.id}/data/val.csv"
-                },
-                "test": {
-                    "local": dataset.test,
-                    "cloud": f"{model.id}/data/test.csv"
-                }
+                "val": {"local": dataset.val, "cloud": f"{model.id}/data/val.csv"},
+                "test": {"local": dataset.test, "cloud": f"{model.id}/data/test.csv"},
             },
             "training": {
                 "epochs": training.epochs,
@@ -94,10 +101,10 @@ class GCPDeployJob(BaseCloudJob):
                 "staging_dir": f"{model.id}/staging",
                 "experiments_dir": f"{model.id}/experiments",
                 "model_path": f"{model.id}/model",
-                "service_account": service_account
-            }
+                "service_account": service_account,
+            },
         }
-        with open("job.json", "w", encoding='utf-8') as f:
+        with open("job.json", "w", encoding="utf-8") as f:
             json.dump(job_config, f, indent=4)
 
 
@@ -116,15 +123,15 @@ class AWSDeployJob(BaseCloudJob):
     def deploy(config):
         """Deploy foundation model to AWS"""
         endpoint_path = run_aws_deploy_job(config)
-        config['deploy']['endpoint_path'] = endpoint_path
-        with open("job.json", "w", encoding='utf-8') as f:
+        config["deploy"]["endpoint_path"] = endpoint_path
+        with open("job.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
 
     @staticmethod
     def prompt(prompt, config):
         """Send prompt to model"""
-        endpoint_path = config['deploy']['endpoint_path']
-        region = config['deploy']['region']
+        endpoint_path = config["deploy"]["endpoint_path"]
+        region = config["deploy"]["region"]
         response = send_aws_prompt(prompt, endpoint_path, region)
         return response
 
@@ -144,8 +151,8 @@ class AWSDeployJob(BaseCloudJob):
                 "staging_dir": f"{model.id}/staging",
                 "experiments_dir": f"{model.id}/experiments",
                 "model_path": f"{model.id}/model",
-                "iam_role": "constellaxion-admin"
-            }
+                "iam_role": "constellaxion-admin",
+            },
         }
-        with open("job.json", "w", encoding='utf-8') as f:
+        with open("job.json", "w", encoding="utf-8") as f:
             json.dump(job_config, f, indent=4)

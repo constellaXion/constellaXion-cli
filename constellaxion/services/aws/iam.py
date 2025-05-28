@@ -1,24 +1,29 @@
-import boto3
 import json
+
+import boto3
 from botocore.exceptions import ClientError
 
 ROLE_NAME = "constellaxion-admin"
 POLICIES = [
     "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess",
     "arn:aws:iam::aws:policy/AmazonS3FullAccess",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
 ]
+
 
 def get_current_user_arn():
     """Get the ARN of the currently authenticated IAM user."""
     try:
-        sts = boto3.client('sts')
+        sts = boto3.client("sts")
         identity = sts.get_caller_identity()
         return identity["Arn"]
     except ClientError as e:
-        print("Error: Could not determine the current user. Are you logged in with AWS CLI?")
+        print(
+            "Error: Could not determine the current user. Are you logged in with AWS CLI?"
+        )
         print(f"Details: {e}")
         raise
+
 
 def add_inline_ecr_policy(iam_client):
     """Adds an inline ECR access policy to the Constellaxion IAM role."""
@@ -31,18 +36,18 @@ def add_inline_ecr_policy(iam_client):
                     "ecr:GetAuthorizationToken",
                     "ecr:BatchCheckLayerAvailability",
                     "ecr:GetDownloadUrlForLayer",
-                    "ecr:BatchGetImage"
+                    "ecr:BatchGetImage",
                 ],
-                "Resource": "*"
+                "Resource": "*",
             }
-        ]
+        ],
     }
 
     try:
         iam_client.put_role_policy(
             RoleName=ROLE_NAME,
             PolicyName="ConstellaxionECRAccess",
-            PolicyDocument=json.dumps(ecr_inline_policy)
+            PolicyDocument=json.dumps(ecr_inline_policy),
         )
         print("Inline ECR access policy attached to role.")
     except ClientError as e:
@@ -60,21 +65,18 @@ def create_iam_role():
             {
                 "Effect": "Allow",
                 "Principal": {
-                    "Service": [
-                        "sagemaker.amazonaws.com",
-                        "ecs-tasks.amazonaws.com"
-                    ]
+                    "Service": ["sagemaker.amazonaws.com", "ecs-tasks.amazonaws.com"]
                 },
-                "Action": "sts:AssumeRole"
+                "Action": "sts:AssumeRole",
             }
-        ]
+        ],
     }
 
     try:
         iam.create_role(
             RoleName=ROLE_NAME,
             AssumeRolePolicyDocument=json.dumps(assume_role_policy_document),
-            Description="Constellaxion Admin Role for deploying and training models"
+            Description="Constellaxion Admin Role for deploying and training models",
         )
         print(f"Role '{ROLE_NAME}' created successfully.")
     except ClientError as e:
@@ -104,4 +106,3 @@ def create_aws_permissions():
         print("IAM initialization complete.")
     except Exception as e:
         print(f"Initialization failed: {e}")
-
