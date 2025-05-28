@@ -1,8 +1,6 @@
 """LoRA fine-tuning script with Unsloth optimizations for GCP deployment."""
 
 import os    
-import time
-import threading
 import argparse
 import inspect
 import pandas as pd
@@ -13,8 +11,7 @@ from transformers.integrations import TensorBoardCallback
 from transformers import TrainingArguments
 from google.cloud import aiplatform
 from google.cloud import storage
-from watchdog.observers import Observer
-from constellaxion_utils.gcs.gcs_uploader import GCSUploaderHandler, ModelManager
+from constellaxion_utils.gcs.gcs_uploader import ModelManager
 
 # Parse cli args
 parser = argparse.ArgumentParser()
@@ -70,22 +67,7 @@ tensorboard_path = os.environ.get("AIP_TENSORBOARD_LOG_DIR")
 TRAIN_SET = f"gs://{GCS_BUCKET_NAME}/{args.train_set}"
 VAL_SET = f"gs://{GCS_BUCKET_NAME}/{args.val_set}"
 TEST_SET = f"gs://{GCS_BUCKET_NAME}/{args.test_set}"
-OUTPUT_DIR = f"gs://{GCS_BUCKET_NAME}/{EXPERIMENT_DIR}"
-
-def start_gcs_sync(local_dir, gcs_dir):
-    """Sync local directory to GCS bucket"""
-    event_handler = GCSUploaderHandler(local_dir, gcs_dir)
-    observer = Observer()
-    observer.schedule(event_handler, path=local_dir, recursive=True)
-    observer.start()
-    print(f"🚀 Started syncing from {local_dir} to {gcs_dir}")
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
+OUTPUT_DIR = f"/gcs/{GCS_BUCKET_NAME}/{EXPERIMENT_DIR}"
 
 def gcs_uri_to_fuse_path(gcs_uri: str) -> str:
     """
@@ -110,6 +92,7 @@ def gcs_uri_to_fuse_path(gcs_uri: str) -> str:
 
     return f"/gcs/{bucket}/{path}" if path else f"/gcs/{bucket}"
 
+tensorboard_path = gcs_uri_to_fuse_path(tensorboard_path)
 
 # Dataset
 train_df = pd.read_csv(TRAIN_SET)
@@ -215,7 +198,7 @@ train_args = TrainingArguments(
         weight_decay = 0.1,
         lr_scheduler_type = "linear",
         seed = 3407,
-        output_dir = "./experiments",
+        output_dir = OUTPUT_DIR,
         report_to = ["tensorboard"],
         logging_dir = tensorboard_path,
     )
@@ -233,13 +216,6 @@ trainer = SFTTrainer(
     args = train_args,
     callbacks=[TensorBoardCallback()]
 )
-
-# Start the GCS sync in a separate thread
-os.makedirs("./experiments", exist_ok=True)
-sync_thread = threading.Thread(
-    target=start_gcs_sync, args=("./experiments", OUTPUT_DIR), daemon=True
-)
-sync_thread.start()
 
 # Train model
 if checkpoint:
