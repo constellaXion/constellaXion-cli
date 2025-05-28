@@ -1,4 +1,8 @@
+import sys
 from setuptools import setup, find_packages
+
+if sys.platform == "win32":
+    print("NOTE: For Windows, ensure Microsoft C++ Build Tools are installed.")
 
 setup(
     name='constellaxion',
