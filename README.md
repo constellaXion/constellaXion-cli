@@ -59,6 +59,15 @@ Install the package:
 pip install constellaxion
 ```
 
+For Windows users: this package may compile dependencies (e.g., numpy) from source. 
+Please ensure you have the Microsoft C++ Build Tools installed:  
+https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+Alternatively, install with prebuilt binaries:
+
+```sh
+pip install --prefer-binary constellaxion
+```
 
 ## YAML Configuration Format
 

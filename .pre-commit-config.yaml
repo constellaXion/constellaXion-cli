@@ -1,6 +1,61 @@
 minimum_pre_commit_version: "4.2.0"
 repos:
+
+  # ✅ GENERAL SANITY CHECKS
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      # Removes trailing spaces on any line
       - id: trailing-whitespace
+
+      # Ensures each file ends with a newline (important for POSIX tools)
+      - id: end-of-file-fixer
+
+      # Validates JSON files are correctly formatted
+      - id: check-json
+
+      # Validates YAML files are correctly formatted
+      - id: check-yaml
+
+      # Prevents adding files over a specified size (default: 500 KB)
+      - id: check-added-large-files
+
+      # Detects unresolved merge conflicts (`<<<< HEAD`, etc.)
+      - id: check-merge-conflict
+
+      # Prevents adding files with name conflicts due to case sensitivity issues
+      - id: check-case-conflict
+
+      # Ensures executables have a proper shebang line
+      - id: check-executables-have-shebangs
+
+  # 🎨 CODE FORMATTERS
+
+  # Formats Python code using Black (opinionated, safe, widely adopted)
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+
+  # Sorts Python imports automatically and consistently
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.13.2
+    hooks:
+      - id: isort
+
+  # 🔍 LINTING
+
+  # Runs flake8: detects unused variables, undefined names, formatting issues
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+
+  # 🔐 SECURITY
+
+  # Bandit scans Python code for security issues (e.g., eval, subprocess usage)
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ["-r", "."]

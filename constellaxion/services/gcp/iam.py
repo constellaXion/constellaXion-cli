@@ -1,3 +1,6 @@
+"""
+This module provides functions for managing IAM roles and service accounts in GCP.
+"""
 from googleapiclient.discovery import build, Resource
 from google.auth import default
 from google.auth.exceptions import RefreshError
