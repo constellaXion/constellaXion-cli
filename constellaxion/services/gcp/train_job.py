@@ -202,7 +202,6 @@ def run_training_job(config):
     project_id = config['deploy']['project_id']
     location = config['deploy']['region']
     experiment_name = f"{config['model']['model_id']}-lora-{config['training']['epochs']}e"
-    
     # Add this before initializing the experiment
     create_vertex_dataset(experiment_name, bucket_name, train_set, val_set, test_set, location)
     create_training_job(
