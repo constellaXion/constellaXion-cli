@@ -29,13 +29,14 @@ def deploy_model_to_endpoint(model, model_id: str, instance_type: str):
 
 def run_aws_deploy_job(config):
     """Runs the LMI deployment job by creating and deploying a model to SageMaker."""
-    base_model = config["model"]["base_model"]
+    base_model_alias = config["model"]["base_model"]
     model_id = config["model"]["model_id"]
     region = config["deploy"]["region"]
     iam_role = config["deploy"]["iam_role"]
     account_id = get_aws_account_id()
     role_arn = f"arn:aws:iam::{account_id}:role/{iam_role}"
-    infra_config = model_map[base_model]["aws_infra"]
+    infra_config = model_map[base_model_alias]["aws_infra"]
+    base_model = model_map[base_model_alias]["base_model"]
     # Use the LMI container image
     # image_uri = (
     #     "763104351884.dkr.ecr.us-west-2.amazonaws.com/"
