@@ -5,25 +5,6 @@ import pkg_resources
 
 from constellaxion.models.model_map import model_map
 
-# finetune_packages = [
-#     "constellaxion-utils==0.1.3",
-#     "trl==0.15.2",
-#     "transformers",
-#     "dataset",
-#     "peft",
-#     "google-cloud-storage",
-#     "google-cloud-aiplatform",
-#     "python-json-logger",
-#     "watchdog",
-#     "gcsfs",
-#     "unsloth",
-#     "bitsandbytes",
-#     "xformers==0.0.29.post3",
-#     "accelerate",
-#     "triton",
-#     "cut_cross_entropy",
-# ]
-
 
 def create_vertex_dataset(
     model_id: str,
