@@ -51,12 +51,13 @@ def init_model(model_config):
     return Model(model_id, base)
 
 
-def init_dataset(dataset_config):
+def init_dataset(dataset_config, model_config):
     """Initialize the dataset
 
     Args:
         dataset_config (dict): Dataset config details
     """
+    model_id = model_config.get("id")
     train = dataset_config.get("train")
     val = dataset_config.get("val")
     test = dataset_config.get("test")
@@ -66,7 +67,7 @@ def init_dataset(dataset_config):
         click.echo("Error: Missing value, dataset.val in model.yaml file", err=True)
     if not test:
         click.echo("Error: Missing value, dataset.test in model.yaml file", err=True)
-    return Dataset(train, val, test)
+    return Dataset(train, val, test, model_id)
 
 
 def init_training(training_config):
@@ -190,7 +191,7 @@ def init():
                         "Error: Missing value, dataset in model.yaml file", err=True
                     )
                     return
-                dataset = init_dataset(dataset_config)
+                dataset = init_dataset(dataset_config, model_config)
             deploy_config = config.get("deploy")
             if not deploy_config:
                 click.echo("Error: Missing value, deploy in model.yaml file", err=True)
