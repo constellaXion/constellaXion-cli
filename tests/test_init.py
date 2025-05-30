@@ -79,7 +79,7 @@
 # #         # Create an invalid YAML file
 # #         with open("model.yaml", "w") as f:
 # #             f.write("invalid: yaml: content: [")
-        
+
 # #         result = runner.invoke(init)
 # #         assert result.exit_code != 0
 # #         assert "Error" in result.output
@@ -90,4 +90,4 @@
 # #     with runner.isolated_filesystem():
 # #         result = runner.invoke(init)
 # #         assert result.exit_code != 0
-# #         assert "Error: model.yaml file not found" in result.output 
+# #         assert "Error: model.yaml file not found" in result.output

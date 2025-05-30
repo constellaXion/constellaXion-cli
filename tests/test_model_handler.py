@@ -26,4 +26,4 @@
 # def test_model_none_base_model():
 #     """Test that Model raises an error with None base model."""
 #     with pytest.raises(TypeError):
-#         Model("test-model", None) 
+#         Model("test-model", None)
