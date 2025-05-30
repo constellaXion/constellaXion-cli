@@ -27,6 +27,7 @@ jobs:
           fi
           pip install -r requirements.txt
           pip install pytest pytest-cov
+          pip install -e .
       - name: Run tests with coverage
         run: |
           pytest --cov=constellaxion --cov-report=html --cov-report=xml tests/
