@@ -1,7 +1,7 @@
 minimum_pre_commit_version: "4.2.0"
 repos:
 
-  # ✅ GENERAL SANITY CHECKS
+  # GENERAL SANITY CHECKS
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -29,7 +29,7 @@ repos:
       # Ensures executables have a proper shebang line
       - id: check-executables-have-shebangs
 
-  # 🎨 CODE FORMATTERS
+  # CODE FORMATTERS
 
   # Formats Python code using Black (opinionated, safe, widely adopted)
   - repo: https://github.com/psf/black
@@ -44,16 +44,16 @@ repos:
     hooks:
       - id: isort
 
-  # 🔍 LINTING
+  # LINTING
 
   # Runs flake8: detects unused variables, undefined names, formatting issues
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
-        args: ["--max-line-length=88", "--extend-ignore=E203,W503, E501"]
+        args: ["--max-line-length=88", "--extend-ignore=E203,W503,E501"]
 
-  # 🔐 SECURITY
+  # SECURITY
 
   # Bandit scans Python code for security issues (e.g., eval, subprocess usage)
   - repo: https://github.com/PyCQA/bandit
