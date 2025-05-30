@@ -65,11 +65,12 @@ def deploy_model_to_endpoint(
 def run_gcp_deploy_job(config):
     """Runs the GCP deployment job by creating and deploying a model to Vertex AI."""
     project_id = config["deploy"]["project_id"]
-    base_model = config["model"]["base_model"]
+    base_model_alias = config["model"]["base_model"]
     region = config["deploy"]["region"]
     model_id = config["model"]["model_id"]
     service_account = config["deploy"]["service_account"]
-    infra_config = model_map[base_model]["gcp_infra"]
+    infra_config = model_map[base_model_alias]["gcp_infra"]
+    base_model = model_map[base_model_alias]["base_model"]
     image_uri = infra_config["images"]["serve"]
     machine_type = infra_config["machine_type"]
     accelerator_type = infra_config["accelerator_type"]

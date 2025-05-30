@@ -5,25 +5,6 @@ import pkg_resources
 
 from constellaxion.models.model_map import model_map
 
-# finetune_packages = [
-#     "constellaxion-utils==0.1.3",
-#     "trl==0.15.2",
-#     "transformers",
-#     "dataset",
-#     "peft",
-#     "google-cloud-storage",
-#     "google-cloud-aiplatform",
-#     "python-json-logger",
-#     "watchdog",
-#     "gcsfs",
-#     "unsloth",
-#     "bitsandbytes",
-#     "xformers==0.0.29.post3",
-#     "accelerate",
-#     "triton",
-#     "cut_cross_entropy",
-# ]
-
 
 def create_vertex_dataset(
     model_id: str,
@@ -190,7 +171,7 @@ def run_training_job(config):
     Args:
         config (dict): Configuration dictionary with model and dataset details.
     """
-    base_model_name = config["model"]["base_model"]
+    base_model_alias = config["model"]["base_model"]
     bucket_name = config["deploy"]["bucket_name"]
     model_id = config["model"]["model_id"]
     train_set = config["dataset"]["train"]["cloud"]
@@ -199,10 +180,10 @@ def run_training_job(config):
     script_path = pkg_resources.resource_filename(
         "constellaxion.models.scripts.gcp", "lora.py"
     )
-    infra_config = model_map[base_model_name]["gcp_infra"]
-    dtype = model_map[base_model_name]["dtype"]
-    max_seq_length = model_map[base_model_name]["max_seq_length"]
-    base_model = model_map[base_model_name]["base_model"]
+    infra_config = model_map[base_model_alias]["gcp_infra"]
+    dtype = model_map[base_model_alias]["dtype"]
+    max_seq_length = model_map[base_model_alias]["max_seq_length"]
+    base_model = model_map[base_model_alias]["base_model"]
     # Upload data to GCP
     upload_data_to_gcp(config)
     project_id = config["deploy"]["project_id"]
