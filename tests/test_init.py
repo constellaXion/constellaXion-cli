@@ -5,6 +5,7 @@ from constellaxion.commands.init import init, init_dataset, init_model, init_tra
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
+from constellaxion.types.model_types import BaseModelName
 
 
 @pytest.fixture
@@ -12,7 +13,7 @@ def valid_model_config():
     """Test model initialization with valid config."""
     return {
         "id": "test-model",
-        "base": "gpt2",
+        "base": BaseModelName.TINY_LLAMA_1B,
     }
 
 
@@ -42,7 +43,7 @@ def test_init_model_valid_config(valid_model_config):
     print(model.base_model)
     assert isinstance(model, Model)  # nosec: B101
     assert model.id == "test-model"  # nosec: B101
-    assert model.base_model == "gpt2"  # nosec: B101
+    assert model.base_model == BaseModelName.TINY_LLAMA_1B  # nosec: B101
 
 
 def test_init_model_invalid_config():
@@ -81,7 +82,7 @@ def test_init_training_invalid_config():
         init_training({})
 
 
-def test_init_command_with_invalid_yaml(tmp_path):
+def test_init_command_with_invalid_yaml():
     """Test init command with invalid YAML file."""
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -94,7 +95,7 @@ def test_init_command_with_invalid_yaml(tmp_path):
         assert "mapping values are not allowed here" in result.output  # nosec: B101
 
 
-def test_init_command_with_missing_yaml(tmp_path):
+def test_init_command_with_missing_yaml():
     """Test init command with missing YAML file."""
     runner = CliRunner()
     with runner.isolated_filesystem():
