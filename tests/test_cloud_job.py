@@ -1,11 +1,8 @@
-import json
-import os
 from unittest.mock import patch
 
 import pytest
-from click.testing import CliRunner
 
-from constellaxion.handlers.cloud_job import GCPDeployJob, AWSDeployJob
+from constellaxion.handlers.cloud_job import AWSDeployJob, GCPDeployJob
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
@@ -33,7 +30,12 @@ def test_gcp_deploy_job_create_config_with_invalid_model():
     """Test GCP deploy job configuration creation with invalid model."""
     with pytest.raises(AttributeError):
         GCPDeployJob.create_config(
-            None, "test-project", "us-central1", "test@test-project.iam.gserviceaccount.com", None, None
+            None,
+            "test-project",
+            "us-central1",
+            "test@test-project.iam.gserviceaccount.com",
+            None,
+            None,
         )
 
 
@@ -43,15 +45,24 @@ def test_aws_deploy_job_create_config_with_invalid_model():
         AWSDeployJob.create_config(None, "us-east-1", None, None)
 
 
-def test_gcp_deploy_job_create_config_with_missing_project_id(valid_model, valid_dataset, valid_training):
+def test_gcp_deploy_job_create_config_with_missing_project_id(
+    valid_model, valid_dataset, valid_training
+):
     """Test GCP deploy job configuration creation with missing project ID."""
     with pytest.raises(ValueError):
         GCPDeployJob.create_config(
-            valid_model, "", "us-central1", "test@test-project.iam.gserviceaccount.com", valid_dataset, valid_training
+            valid_model,
+            "",
+            "us-central1",
+            "test@test-project.iam.gserviceaccount.com",
+            valid_dataset,
+            valid_training,
         )
 
 
-def test_aws_deploy_job_create_config_with_missing_region(valid_model, valid_dataset, valid_training):
+def test_aws_deploy_job_create_config_with_missing_region(
+    valid_model, valid_dataset, valid_training
+):
     """Test AWS deploy job configuration creation with missing region."""
     with pytest.raises(ValueError):
         AWSDeployJob.create_config(valid_model, "", valid_dataset, valid_training)
@@ -83,4 +94,3 @@ def test_aws_deploy_job_prompt_with_invalid_config(_mock_send_aws_prompt):
     """Test AWS deploy job prompt with invalid config."""
     with pytest.raises(KeyError):
         AWSDeployJob.prompt("Test prompt", {})
-        

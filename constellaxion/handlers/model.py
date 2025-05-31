@@ -1,5 +1,6 @@
 """Model class for handling model configuration."""
 
+
 class Model:
     """Represents a model with its ID and base model configuration."""
 

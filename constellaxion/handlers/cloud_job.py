@@ -76,7 +76,9 @@ class GCPDeployJob(BaseCloudJob):
     ):
         """Create a JSON configuration file from model and dataset attributes."""
         if not project_id or not region or not service_account:
-            raise ValueError("model, project_id, region, and service_account must be provided")
+            raise ValueError(
+                "model, project_id, region, and service_account must be provided"
+            )
         bucket_name = f"constellaxion-{project_id}"
         job_config = {
             "model": {

@@ -47,8 +47,8 @@ class GCSUploaderHandler(FileSystemEventHandler):
         for root, dirs, files in os.walk(directory_path):
             for file in files:
                 self.upload_file(os.path.join(root, file))
-            for dir in dirs:
-                self.upload_directory(os.path.join(root, dir))
+            for directory in dirs:
+                self.upload_directory(os.path.join(root, directory))
 
 
 def start_gcs_sync(local_dir, gcs_dir):

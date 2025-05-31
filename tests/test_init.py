@@ -6,6 +6,7 @@ from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
 
+
 @pytest.fixture
 def valid_model_config():
     """Test model initialization with valid config."""
