@@ -1,25 +1,22 @@
 import json
 from unittest.mock import patch
 
-import pytest
 from click.testing import CliRunner
+import pytest
 
-from constellaxion.commands.model import model, get_job
+from constellaxion.commands.model import get_job, model
 
 
 @pytest.fixture
 def valid_job_config():
     """Test job configuration."""
     return {
-        "model": {
-            "model_id": "test-model",
-            "base_model": "tiny-llama-1b"
-        },
+        "model": {"model_id": "test-model", "base_model": "tiny-llama-1b"},
         "deploy": {
             "provider": "gcp",
             "endpoint_path": "projects/test/locations/us-central1/endpoints/test-endpoint",
-            "region": "us-central1"
-        }
+            "region": "us-central1",
+        },
     }
 
 
@@ -138,4 +135,3 @@ def test_model_deploy_command_aws(mock_deploy, runner, valid_job_config):
         result = runner.invoke(model, ["deploy"])
         assert result.exit_code == 0  # nosec: B101
         mock_deploy.assert_called_once_with(valid_job_config)
-
