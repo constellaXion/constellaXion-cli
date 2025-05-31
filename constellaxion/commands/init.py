@@ -41,13 +41,19 @@ def init_model(model_config):
 
     Args:
         model_config (dict): Model config details
+
+    Returns:
+        Model: Initialized model instance
+
+    Raises:
+        AttributeError: If required attributes (id or base) are missing
     """
     model_id = model_config.get("id")
     base = model_config.get("base")
     if not model_id:
-        click.echo("Error: Missing value, model.id in model.yaml file", err=True)
+        raise AttributeError("Missing value, model.id in model.yaml file")
     if not base:
-        click.echo("Error: Missing value, model.base in model.yaml file", err=True)
+        raise AttributeError("Missing value, model.base in model.yaml file")
     return Model(model_id, base)
 
 
@@ -62,11 +68,11 @@ def init_dataset(dataset_config, model_config):
     val = dataset_config.get("val")
     test = dataset_config.get("test")
     if not train:
-        click.echo("Error: Missing value, dataset.train in model.yaml file", err=True)
+        raise AttributeError("Missing value, dataset.train in model.yaml file")
     if not val:
-        click.echo("Error: Missing value, dataset.val in model.yaml file", err=True)
+        raise AttributeError("Missing value, dataset.val in model.yaml file")
     if not test:
-        click.echo("Error: Missing value, dataset.test in model.yaml file", err=True)
+        raise AttributeError("Missing value, dataset.test in model.yaml file")
     return Dataset(train, val, test, model_id)
 
 
@@ -79,11 +85,9 @@ def init_training(training_config):
     epochs = training_config.get("epochs")
     batch_size = training_config.get("batch_size")
     if not epochs:
-        click.echo("Error: Missing value, training.epochs in model.yaml file", err=True)
+        raise AttributeError("Missing value, training.epochs in model.yaml file")
     if not batch_size:
-        click.echo(
-            "Error: Missing value, training.batch_size in model.yaml file", err=True
-        )
+        raise AttributeError("Missing value, training.batch_size in model.yaml file")
     return Training(epochs, batch_size)
 
 
@@ -170,7 +174,7 @@ def init():
     model_config = os.path.join(os.getcwd(), "model.yaml")
     if not os.path.exists(model_config):
         click.echo("Error: model.yaml file not found in current directory.", err=True)
-        return
+        raise click.Abort()
 
     click.echo("Preparing new model config 📡")
     try:
@@ -190,12 +194,12 @@ def init():
                     click.echo(
                         "Error: Missing value, dataset in model.yaml file", err=True
                     )
-                    return
+                    raise click.Abort()
                 dataset = init_dataset(dataset_config, model_config)
             deploy_config = config.get("deploy")
             if not deploy_config:
                 click.echo("Error: Missing value, deploy in model.yaml file", err=True)
-                return
+                raise click.Abort()
             # Init configs
             model = init_model(model_config)
             init_job(deploy_config, model, dataset, training)
@@ -206,5 +210,7 @@ def init():
     # Parse values and excecute commands
     except yaml.YAMLError as e:
         click.echo(f"Error parsing model.yaml: {str(e)}", err=True)
+        raise click.Abort()
     except (OSError, ValueError, KeyError) as e:
         click.echo(f"Error: {str(e)}", err=True)
+        raise click.Abort()

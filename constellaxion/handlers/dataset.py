@@ -1,11 +1,21 @@
 class Set:
-    def __init__(self, type: str, path: str):
-        self.type = type
+    """Set class for handling dataset paths."""
+
+    def __init__(self, dataset_type: str, path: str):
+        if not path:
+            raise ValueError(f"Path for {dataset_type} set cannot be empty")
+        self.type = dataset_type
         self.path = path
 
 
 class Dataset:
+    """Dataset class for handling dataset paths."""
+
     def __init__(self, train: str, val: str, test: str, model_id: str):
+        if not train or not val or not test:
+            raise ValueError("All dataset paths must be provided")
+        if not model_id:
+            raise ValueError("Model ID must be provided")
         self._train = Set("train", train)
         self._val = Set("val", val)
         self._test = Set("test", test)

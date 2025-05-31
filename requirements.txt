@@ -11,3 +11,4 @@ boto3
 sagemaker
 pynput
 tabulate
+protobuf==3.20.3
