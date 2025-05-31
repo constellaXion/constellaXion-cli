@@ -5,15 +5,13 @@ from constellaxion.commands.init import init, init_dataset, init_model, init_tra
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
-from constellaxion.types.model_types import BaseModelName
-
 
 @pytest.fixture
 def valid_model_config():
     """Test model initialization with valid config."""
     return {
         "id": "test-model",
-        "base": BaseModelName.TINY_LLAMA_1B,
+        "base": "tiny-llama-1b",
     }
 
 
@@ -43,7 +41,7 @@ def test_init_model_valid_config(valid_model_config):
     print(model.base_model)
     assert isinstance(model, Model)  # nosec: B101
     assert model.id == "test-model"  # nosec: B101
-    assert model.base_model == BaseModelName.TINY_LLAMA_1B  # nosec: B101
+    assert model.base_model == "tiny-llama-1b"  # nosec: B101
 
 
 def test_init_model_invalid_config():

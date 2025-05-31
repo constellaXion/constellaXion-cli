@@ -1,9 +1,9 @@
 class Set:
     """Set class for handling dataset paths."""
-    def __init__(self, type: str, path: str):
+    def __init__(self, dataset_type: str, path: str):
         if not path:
-            raise ValueError(f"Path for {type} set cannot be empty")
-        self.type = type
+            raise ValueError(f"Path for {dataset_type} set cannot be empty")
+        self.type = dataset_type
         self.path = path
 
 
