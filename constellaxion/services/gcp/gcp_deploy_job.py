@@ -1,6 +1,6 @@
 from google.cloud import aiplatform
 
-from constellaxion.models.model_map import model_map
+from constellaxion.utils import get_model_map
 
 
 def create_model_from_custom_container(model_name: str, image_uri: str, env_vars: dict):
@@ -64,20 +64,36 @@ def deploy_model_to_endpoint(
 
 def run_gcp_deploy_job(config):
     """Runs the GCP deployment job by creating and deploying a model to Vertex AI."""
-    project_id = config["deploy"]["project_id"]
-    base_model_alias = config["model"]["base_model"]
-    region = config["deploy"]["region"]
-    model_id = config["model"]["model_id"]
-    service_account = config["deploy"]["service_account"]
-    infra_config = model_map[base_model_alias]["gcp_infra"]
-    base_model = model_map[base_model_alias]["base_model"]
-    image_uri = infra_config["images"]["serve"]
-    machine_type = infra_config["machine_type"]
-    accelerator_type = infra_config["accelerator_type"]
-    accelerator_count = infra_config["accelerator_count"]
-    replica_count = infra_config["replica_count"]
-    dtype = infra_config["dtype"] if "dtype" in infra_config else None
+    deploy_config = config.get("deploy", {})
+    if not deploy_config:
+        raise KeyError("Invalid config, missing deploy section")
+    model_config = config.get("model", {})
+    if not model_config:
+        raise KeyError("Invalid config, missing model section")
+    project_id = deploy_config.get("project_id", None)
+    region = deploy_config.get("region", None)
+    base_model_alias = model_config.get("base_model", None)
+    model_id = model_config.get("model_id", None)
+    hf_token = model_config.get("hf_token", None)
+    service_account = deploy_config.get("service_account", None)
+    # Get the model infra config from the constellaxion database
+    model_map = get_model_map(base_model_alias)
+    base_model = model_map.get("base_model", None)
+    infra_config = model_map.get("gcp_infra", {})
+    hf_token_required = model_map.get("hf_token_required", False)
+    if hf_token_required and not hf_token:
+        raise ValueError(
+            "This is a protected model, please provide a valid HF token in model.yaml file and rerun `constellaxion init`"
+        )
+    image_uri = infra_config.get("images", {}).get("serve", None)
+    machine_type = infra_config.get("machine_type", None)
+    accelerator_type = infra_config.get("accelerator_type", None)
+    accelerator_count = infra_config.get("accelerator_count", None)
+    replica_count = infra_config.get("replica_count", None)
+    dtype = infra_config.get("dtype", None)
     env_vars = {"MODEL_NAME": base_model, "DTYPE": dtype}
+    if hf_token:
+        env_vars["HF_TOKEN"] = hf_token
     # Initialize the Vertex AI SDK
     aiplatform.init(project=project_id, location=region)
     # # Download the model

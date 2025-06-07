@@ -84,6 +84,7 @@ class GCPDeployJob(BaseCloudJob):
             "model": {
                 "model_id": model.id,
                 "base_model": model.base_model,
+                "hf_token": model.hf_token,
             },
             "dataset": dataset.to_dict() if dataset else None,
             "training": training.to_dict() if training else None,
@@ -138,6 +139,7 @@ class AWSDeployJob(BaseCloudJob):
             "model": {
                 "model_id": model.id,
                 "base_model": model.base_model,
+                "hf_token": model.hf_token,
             },
             "dataset": dataset.to_dict() if dataset else None,
             "training": training.to_dict() if training else None,

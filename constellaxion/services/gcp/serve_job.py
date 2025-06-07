@@ -1,6 +1,6 @@
 from google.cloud import aiplatform
 
-from constellaxion.models.model_map import model_map
+from constellaxion.utils import get_model_map
 
 
 def create_model_from_custom_container(model_name: str, image_uri: str, env_vars: dict):
@@ -68,9 +68,10 @@ def run_serving_job(config):
     bucket_name = config["deploy"]["bucket_name"]
     model_path = config["deploy"]["model_path"]
     service_account = config["deploy"]["service_account"]
-    base_model = model_map[base_model_id]["namespace"]
-    infra_config = model_map[base_model_id]["infra"]
-    image_uri = infra_config["serve_image_uri"]
+    model_map = get_model_map(base_model_id)
+    base_model = model_map[base_model_id]["base_model"]
+    infra_config = model_map[base_model_id]["gcp_infra"]
+    image_uri = infra_config["images"]["serve"]
     machine_type = infra_config["machine_type"]
     accelerator_type = infra_config["accelerator_type"]
     accelerator_count = infra_config["accelerator_count"]
