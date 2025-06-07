@@ -3,7 +3,7 @@ import json
 from google.cloud import aiplatform, storage
 import pkg_resources
 
-from constellaxion.models.model_map import model_map
+from constellaxion.utils import get_model_map
 
 
 def create_vertex_dataset(
@@ -171,26 +171,30 @@ def run_training_job(config):
     Args:
         config (dict): Configuration dictionary with model and dataset details.
     """
-    base_model_alias = config["model"]["base_model"]
-    bucket_name = config["deploy"]["bucket_name"]
-    model_id = config["model"]["model_id"]
-    train_set = config["dataset"]["train"]["cloud"]
-    val_set = config["dataset"]["val"]["cloud"]
-    test_set = config["dataset"]["test"]["cloud"]
+    model_config = config.get("model", {})
+    deploy_config = config.get("deploy", {})
+    dataset_config = config.get("dataset", {})
+    training_config = config.get("training", {})
+    base_model_alias = model_config.get("base_model", None)
+    bucket_name = deploy_config.get("bucket_name", None)
+    model_id = model_config.get("model_id", None)
+    epochs = training_config.get("epochs", 1)
+    train_set = dataset_config.get("train", {}).get("cloud", None)
+    val_set = dataset_config.get("val", {}).get("cloud", None)
+    test_set = dataset_config.get("test", {}).get("cloud", None)
     script_path = pkg_resources.resource_filename(
         "constellaxion.models.scripts.gcp", "lora.py"
     )
-    infra_config = model_map[base_model_alias]["gcp_infra"]
-    dtype = model_map[base_model_alias]["dtype"]
-    max_seq_length = model_map[base_model_alias]["max_seq_length"]
-    base_model = model_map[base_model_alias]["base_model"]
+    model_map = get_model_map(base_model_alias)
+    infra_config = model_map.get("gcp_infra", {})
+    dtype = model_map.get("dtype", None)
+    max_seq_length = model_map.get("max_seq_length", None)
+    base_model = model_map.get("base_model", None)
     # Upload data to GCP
     upload_data_to_gcp(config)
-    project_id = config["deploy"]["project_id"]
-    location = config["deploy"]["region"]
-    experiment_name = (
-        f"{config['model']['model_id']}-lora-{config['training']['epochs']}e"
-    )
+    project_id = deploy_config.get("project_id", None)
+    location = deploy_config.get("region", None)
+    experiment_name = f"{model_id}-lora-{epochs}e"
     # Add this before initializing the experiment
     create_vertex_dataset(
         experiment_name, bucket_name, train_set, val_set, test_set, location
@@ -210,17 +214,17 @@ def run_training_job(config):
         replica_count=infra_config["replica_count"],
         experiment_name=experiment_name,
         args=[
-            f"--epochs={config['training']['epochs']}",
-            f"--batch-size={config['training']['batch_size']}",
-            f"--train-set={config['dataset']['train']['cloud']}",
-            f"--val-set={config['dataset']['val']['cloud']}",
-            f"--test-set={config['dataset']['test']['cloud']}",
+            f"--epochs={epochs}",
+            f"--batch-size={training_config.get('batch_size', 1)}",
+            f"--train-set={train_set}",
+            f"--val-set={val_set}",
+            f"--test-set={test_set}",
             f"--dtype={dtype}",
             f"--max-seq-length={max_seq_length}",
             f"--base-model={base_model}",
             f"--bucket-name={bucket_name}",
-            f"--model-path={config['deploy']['model_path']}",
-            f"--experiments-dir={config['deploy']['experiments_dir']}",
+            f"--model-path={deploy_config.get('model_path', None)}",
+            f"--experiments-dir={deploy_config.get('experiments_dir', None)}",
             f"--location={location}",
             f"--project-id={project_id}",
             f"--model-id={model_id}",

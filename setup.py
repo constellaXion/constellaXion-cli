@@ -7,7 +7,7 @@ if sys.platform == "win32":
 
 setup(
     name="constellaxion",
-    version="0.3.2",
+    version="0.4.1",
     packages=find_packages(),
     install_requires=open("requirements.txt", encoding="utf-8").read().splitlines(),
     entry_points={

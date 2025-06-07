@@ -4,6 +4,8 @@ import contextlib
 import json
 import logging
 
+import requests
+
 
 def get_json(path):
     """Get job configuration"""
@@ -51,3 +53,11 @@ def check_logging_levels():
             if isinstance(logger, logging.PlaceHolder):
                 continue
             f.write(f"Logger: {name}, Level: {get_level_name(logger.level)}\n")
+
+
+def get_model_map(alias: str):
+    """Get the model map from the"""
+    url = f"https://us-central1-constellaxion.cloudfunctions.net/getModelByAlias?alias={alias}"
+    response = requests.get(url, timeout=60)
+    data = response.json()
+    return data.get("model", {})

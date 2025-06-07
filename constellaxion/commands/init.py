@@ -50,11 +50,12 @@ def init_model(model_config):
     """
     model_id = model_config.get("id")
     base = model_config.get("base")
+    hf_token = model_config.get("hf_token", None)
     if not model_id:
         raise AttributeError("Missing value, model.id in model.yaml file")
     if not base:
         raise AttributeError("Missing value, model.base in model.yaml file")
-    return Model(model_id, base)
+    return Model(model_id, base, hf_token)
 
 
 def init_dataset(dataset_config, model_config):
