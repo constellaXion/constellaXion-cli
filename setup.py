@@ -7,7 +7,7 @@ if sys.platform == "win32":
 
 setup(
     name="constellaxion",
-    version="0.4.2",
+    version="0.4.3",
     packages=find_packages(),
     install_requires=open("requirements.txt", encoding="utf-8").read().splitlines(),
     entry_points={
@@ -27,5 +27,11 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.10",
-    package_data={"constellaxion": ["services/gcp/*.py", "models/scripts/**/*.py"]},
+    package_data={
+        "constellaxion": [
+            "services/gcp/*.py",
+            "models/scripts/**/*.py",
+            "ui/prompts/**",
+        ]
+    },
 )

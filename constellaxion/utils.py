@@ -3,7 +3,9 @@
 import contextlib
 import json
 import logging
+import os
 
+import click
 import requests
 
 
@@ -61,3 +63,22 @@ def get_model_map(alias: str):
     response = requests.get(url, timeout=60)
     data = response.json()
     return data.get("model", {})
+
+
+def get_job(show=False):
+    """Load and optionally print the job configuration from job.json."""
+    print(os.getcwd())
+    if os.path.exists("job.json"):
+        with open("job.json", "r", encoding="utf-8") as f:
+            config = json.load(f)
+        if show:
+            click.echo(click.style("Model Job Config Details:", bold=True, fg="blue"))
+            click.echo(json.dumps(config, indent=4))
+        return config
+    else:
+        click.echo(
+            click.style(
+                "Error: job.json not found. Run 'constellaxion init' first", fg="red"
+            )
+        )
+        return None

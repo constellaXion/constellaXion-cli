@@ -2,6 +2,7 @@ requests
 rich
 google-cloud-aiplatform
 google-api-python-client
+google-cloud-run
 pyfiglet
 halo
 pydantic
