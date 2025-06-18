@@ -90,7 +90,7 @@ training:
 deploy:
   gcp:
     project_id: my-gcp-project
-    location: europe-west2
+    region: europe-west2
 ```
 
 model (required): The ID of the model you want to use.
