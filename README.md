@@ -105,7 +105,7 @@ training (required for finetuning): The number of epochs and batch size for trai
 deploy (required for deployment): The Deployment target. Currently only GCP is supported.
 - gcp:
   - project_id: The GCP project ID.
-  - location: The GCP region to deploy the model to.
+  - region: The GCP region to deploy the model to.
 
 ## Usage
 Initialize your project:
