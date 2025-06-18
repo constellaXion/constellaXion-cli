@@ -35,7 +35,7 @@ Configure and access the most popular open source LLMs with a few simple command
     <img src="./assets/gcp.png" width="150" height="150"/>
     <img src="./assets/aws.png" width="100" height="100"/>
   </div>
-  <div align="center" style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 20px;">
+  <div align="center" style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 40px;">
     <img src="./assets/huggingface.svg" width="100"/>
     <img src="./assets/vllm.svg" width="150"/>
     <img src="./assets/djl.png" width="150"/>
