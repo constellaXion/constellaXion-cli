@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Request
+import os
+from pathlib import Path
+
+import click
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-import os
-import click
-from pathlib import Path
 
 
 def ui_server_app():
@@ -43,7 +44,7 @@ def ui_server_app():
             click.echo(click.style(f"Error serving index.html: {str(e)}", fg="red"))
             return HTMLResponse(
                 content="<h1>Error</h1><p>Failed to load the application.</p>",
-                status_code=500
+                status_code=500,
             )
 
     @app.get("/{path:path}")
@@ -58,10 +59,11 @@ def ui_server_app():
                 return await serve_index()
             return FileResponse(str(file_path))
         except Exception as e:
-            click.echo(click.style(f"Error serving static file {path}: {str(e)}", fg="red"))
+            click.echo(
+                click.style(f"Error serving static file {path}: {str(e)}", fg="red")
+            )
             return HTMLResponse(
-                content=f"<h1>Error</h1><p>Failed to load {path}</p>",
-                status_code=500
+                content=f"<h1>Error</h1><p>Failed to load {path}</p>", status_code=500
             )
 
     return app

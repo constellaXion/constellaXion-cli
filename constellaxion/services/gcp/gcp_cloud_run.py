@@ -21,16 +21,13 @@ def create_cloud_run_service(
 ):
     """Creates or updates a Cloud Run service for model serving with GPU support."""
     print("Creating/updating Cloud Run service with GPU support...")
-    
+
     # Initialize the Cloud Run client
     client = run_v2.ServicesClient()
-    
+
     # Convert env_vars dict to list of EnvVar objects
-    env_vars_list = [
-        EnvVar(name=key, value=value)
-        for key, value in env_vars.items()
-    ]
-    
+    env_vars_list = [EnvVar(name=key, value=value) for key, value in env_vars.items()]
+
     # Create the container configuration
     container = Container(
         image=image_uri,
@@ -44,7 +41,7 @@ def create_cloud_run_service(
             }
         ),
     )
-    
+
     # Create the service configuration
     service = Service(
         name=f"projects/{project_id}/locations/{region}/services/{service_name}",
@@ -63,11 +60,11 @@ def create_cloud_run_service(
             },
         ),
     )
-    
+
     # Create or update the service
     operation = client.update_service(service=service)
     result = operation.result()
-    
+
     print(f"Cloud Run service created/updated successfully: {result.name}")
     return result.name
 
@@ -80,7 +77,7 @@ def run_gcp_cloud_run_deploy(config):
     model_config = config.get("model", {})
     if not model_config:
         raise KeyError("Invalid config, missing model section")
-        
+
     # Extract configuration values
     project_id = deploy_config.get("project_id", None)
     region = deploy_config.get("region", None)
@@ -88,28 +85,30 @@ def run_gcp_cloud_run_deploy(config):
     model_id = model_config.get("model_id", None)
     hf_token = model_config.get("hf_token", None)
     service_account = deploy_config.get("service_account", None)
-    
+
     # Get the model infra config from the constellaxion database
     model_map = get_model_map(base_model_alias)
     base_model = model_map.get("base_model", None)
     infra_config = model_map.get("gcp_infra", {})
     hf_token_required = model_map.get("hf_token_required", False)
-    
+
     if hf_token_required and not hf_token:
         raise ValueError(
             "This is a protected model, please provide a valid HF token in model.yaml file and rerun `constellaxion init`"
         )
-    
+
     # Get infrastructure configuration
     image_uri = infra_config.get("images", {}).get("serve", None)
-    memory = infra_config.get("memory", "16Gi")  # Increased default memory for GPU workloads
+    memory = infra_config.get(
+        "memory", "16Gi"
+    )  # Increased default memory for GPU workloads
     cpu = infra_config.get("cpu", "4")  # Increased default CPU for GPU workloads
     gpu_type = infra_config.get("gpu_type", "nvidia-tesla-t4")
     gpu_count = infra_config.get("gpu_count", 1)
     min_instances = infra_config.get("min_instances", 1)
     max_instances = infra_config.get("max_instances", 10)
     dtype = infra_config.get("dtype", None)
-    
+
     # Prepare environment variables
     env_vars = {
         "MODEL_NAME": base_model,
@@ -118,7 +117,7 @@ def run_gcp_cloud_run_deploy(config):
     }
     if hf_token:
         env_vars["HF_TOKEN"] = hf_token
-    
+
     # Deploy to Cloud Run
     service_path = create_cloud_run_service(
         project_id=project_id,
@@ -134,5 +133,5 @@ def run_gcp_cloud_run_deploy(config):
         min_instances=min_instances,
         max_instances=max_instances,
     )
-    
-    return service_path 
+
+    return service_path

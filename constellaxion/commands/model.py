@@ -3,7 +3,7 @@
 import click
 
 from constellaxion.handlers.cloud_job import AWSDeployJob, GCPDeployJob
-from constellaxion.ui.server.launch import PromptManager
+from constellaxion.ui.server.run import PromptManager
 from constellaxion.utils import get_job
 
 

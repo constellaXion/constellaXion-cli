@@ -1,7 +1,7 @@
 <a name="readme-top"></a>
 
 <div align="center">
-  <img src="./assets/icon_light_bg.svg" alt="Logo" width="200">
+  <img src="./assets/icon.svg" alt="Logo" width="200">
   <h1 align="center">constellaXion CLI: Automated LLM Deployments for your private cloud</h1>
 </div>
 
@@ -13,7 +13,7 @@
 
 
 
-The fastest way to **Train, Deploy and Serve** Open Source Language Models to your Cloud environment
+The fastest way to **Train, Deploy and Serve** Open Source Language Models to your Private Cloud
 
 # ⚡️ Features
 Configure and access the most popular open source LLMs with a few simple commands
@@ -22,7 +22,7 @@ Configure and access the most popular open source LLMs with a few simple command
 
 - ⚙️ Fine-tune LLMs with your own data and cloud resources
 
-- 🚀 Deploy models to your private cloud environment
+- 🚀 Deploy models to your private cloud
 
 - 🤖 Serve your models with ease
 
@@ -30,18 +30,18 @@ Configure and access the most popular open source LLMs with a few simple command
 
 
 # 📚 The Stack
-<div align="center">
-  <table>
-    <tr>
-      <td align="center"><img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" width="100"/></td>
-      <td align="center"><img src="https://www.vectorlogo.zone/logos/google_cloud/google_cloud-ar21.svg" width="140"/></td>
-    </tr>
-    <tr>
-      <td align="center"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" width="100"/></td>
-      <td align="center"><img src="https://docs.vllm.ai/en/latest/_images/vllm-logo-text-light.png" width="150"/></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/deepjavalibrary/djl/master/website/img/djl.png" width="100"/></td>
-    </tr>
-  </table>
+<div style="margin-bottom: 40px;">
+  <div align="center" style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 20px;">
+    <img src="./assets/gcp.png" width="150" height="150"/>
+    <img src="./assets/aws.png" width="100" height="100"/>
+  </div>
+  <div align="center" style="display: flex; gap: 10px; justify-content: center; align-items: center;">
+    <img src="./assets/huggingface.svg" width="100"/>
+    <img src="./assets/vllm.svg" width="150"/>
+    <img src="./assets/djl.png" width="150"/>
+  </div>
+</div>
+
 
   <p>
     ConstellaXion leverages industry-leading technologies to provide a seamless LLM deployment experience. Deploy to AWS or GCP, serve models efficiently with vLLM, access the latest models from Hugging Face, and utilize DJL's powerful serving capabilities.
