@@ -26,44 +26,40 @@ def train():
     """Run training job"""
     click.echo(click.style("Preparing training job...", fg="blue"))
     config = get_job()
-    if config:
-        cloud = config.get("deploy", {}).get("provider", None)
-        if cloud == "gcp":
-            job = GCPDeployJob()
-            job.run(config)
-        # elif cloud == "aws":
-        #     job = AWSDeployJob()
-        #     job.run(config)
+    cloud_providers = {"gcp": GCPDeployJob}
+    provider = config.get("deploy", {}).get("provider", None)
+    if provider in cloud_providers:
+        job = cloud_providers[provider]()
+        job.run(config)
+    else:
+        click.echo(click.style("No cloud provider found", fg="red"))
 
 
 @model.command(help="Serve a trained model")
 def serve():
     """Serve Model"""
     config = get_job()
-    if config:
-        model_id = config.get("model", {}).get("model_id", None)
-        click.echo(click.style(f"Serving model with ID: {model_id}", fg="blue"))
-        cloud = config.get("deploy", {}).get("provider", None)
-        if cloud == "gcp":
-            job = GCPDeployJob()
-            job.serve(config)
-        elif cloud == "aws":
-            job = AWSDeployJob()
-            job.serve(config)
+    cloud_providers = {"aws": AWSDeployJob, "gcp": GCPDeployJob}
+    provider = config.get("deploy", {}).get("provider", None)
+    if provider in cloud_providers:
+        job = cloud_providers[provider]()
+        job.serve(config)
+    else:
+        click.echo(click.style("No cloud provider found", fg="red"))
 
 
 @model.command()
 def deploy():
     """Deploy a model"""
     click.echo(click.style("Deploying model...", fg="blue"))
-    job_config = get_job()
-    cloud = job_config.get("deploy", {}).get("provider", None)
-    if cloud == "gcp":
-        job = GCPDeployJob()
-        job.deploy(job_config)
-    elif cloud == "aws":
-        job = AWSDeployJob()
-        job.deploy(job_config)
+    config = get_job()
+    cloud_providers = {"aws": AWSDeployJob, "gcp": GCPDeployJob}
+    provider = config.get("deploy", {}).get("provider", None)
+    if provider in cloud_providers:
+        job = cloud_providers[provider]()
+        job.deploy(config)
+    else:
+        click.echo(click.style("No cloud provider found", fg="red"))
 
 
 @model.command()
