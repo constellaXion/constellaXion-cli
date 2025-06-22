@@ -3,6 +3,8 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
+from constellaxion.services.aws.session import create_aws_session
+
 ROLE_NAME = "constellaxion-admin"
 POLICIES = [
     "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess",
@@ -55,9 +57,9 @@ def add_inline_ecr_policy(iam_client):
         raise
 
 
-def create_iam_role():
+def create_iam_role(session):
     """Create the Constellaxion IAM role with proper trust and attach policies."""
-    iam = boto3.client("iam")
+    iam = session.client("iam")
 
     assume_role_policy_document = {
         "Version": "2012-10-17",
@@ -97,12 +99,14 @@ def create_iam_role():
     add_inline_ecr_policy(iam)
 
 
-def create_aws_permissions():
+def create_aws_permissions(profile_name=None, region=None):
     """Creates the Constellaxion IAM role and attaches necessary policies."""
+    session = create_aws_session(profile_name, region)
+
     try:
-        user_arn = get_current_user_arn()
-        print(f"Authenticated as: {user_arn}")
-        create_iam_role()
+        identity = session.client('sts').get_caller_identity()
+        print(f"Authenticated as: {identity['Arn']}")
+        create_iam_role(session)
         print("IAM initialization complete.")
     except Exception as e:
         print(f"Initialization failed: {e}")

@@ -4,6 +4,7 @@ import boto3
 import sagemaker
 from sagemaker.djl_inference.model import DJLModel
 
+from constellaxion.services.aws.session import create_aws_session
 from constellaxion.services.aws.utils import get_aws_account_id
 from constellaxion.utils import get_model_map
 
@@ -30,6 +31,19 @@ def deploy_model_to_endpoint(model, model_id: str, instance_type: str):
 def run_aws_deploy_job(config):
     """Runs the LMI deployment job by creating and deploying a model to SageMaker."""
     deploy_config = config.get("deploy", {})
+    
+    profile = deploy_config.get("profile")
+    region = deploy_config.get("region")
+
+    session = create_aws_session(profile, region)
+    
+    account_id = session.client('sts').get_caller_identity()["Account"]
+    
+    boto3.setup_default_session(
+        profile_name=profile,
+        region_name=region
+    )
+
     if not deploy_config:
         raise KeyError("Invalid config, missing deploy section")
     model_config = config.get("model", {})
