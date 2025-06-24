@@ -131,7 +131,7 @@ class AWSDeployJob(BaseCloudJob):
         return response
 
     @staticmethod
-    def create_config(model: Model, region: str, dataset: Dataset, training: Training):
+    def create_config(model: Model, region: str, dataset: Dataset, training: Training, profile: str = None):
         """Create a JSON configuration file from model and dataset attributes."""
         if not region:
             raise ValueError("region must be provided")
@@ -146,6 +146,7 @@ class AWSDeployJob(BaseCloudJob):
             "deploy": {
                 "provider": "aws",
                 "region": region,
+                "profile": profile,
                 "bucket_name": f"constellaxion-{model.id}",
                 "staging_dir": f"{model.id}/staging",
                 "experiments_dir": f"{model.id}/experiments",

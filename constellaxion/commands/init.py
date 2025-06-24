@@ -15,6 +15,7 @@ from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
 from constellaxion.services.aws.iam import create_aws_permissions
+from constellaxion.services.aws.session import create_aws_session
 from constellaxion.services.gcp.iam import create_service_account
 
 console = Console()
@@ -138,12 +139,17 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
     elif platform == "aws":
         aws = job_config.get("aws")
         region = aws.get("region")
+        profile = aws.get("profile")
+
         if not region:
             raise ValueError("Missing value, job.aws.region in model.yaml file")
-        create_aws_permissions()
-        job = AWSDeployJob()
-        # Create job config
-        job.create_config(model, region, dataset, training)
+        try:
+            create_aws_permissions(profile, region)  
+            job = AWSDeployJob()
+            job.create_config(model, region, dataset, training, profile)  
+        except ValueError as e:
+            click.echo(f"Error: {str(e)}", err=True)
+            raise click.Abort()
 
 
 def show_after_init_command_table():

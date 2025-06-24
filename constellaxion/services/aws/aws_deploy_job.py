@@ -4,15 +4,27 @@ import boto3
 import sagemaker
 from sagemaker.djl_inference.model import DJLModel
 
+from constellaxion.services.aws.session import create_aws_session
 from constellaxion.services.aws.utils import get_aws_account_id
 from constellaxion.utils import get_model_map
 
 
 def create_model_from_lmi_container(
-    base_model: str, env_vars: dict, execution_role: str
+    base_model: str, env_vars: dict, execution_role: str, sagemaker_session=None
 ):
-    """Creates a SageMaker model using the LMI container."""
-    model = DJLModel(model_id=base_model, env=env_vars, role=execution_role)
+    """Creates a SageMaker model using the LMI container.
+
+    Args:
+        base_model: The model ID/name
+        env_vars: Environment variables for the container
+        execution_role: IAM role ARN for SageMaker
+        sagemaker_session: Optional SageMaker session (uses default if not provided)
+    """
+    model_kwargs = {"model_id": base_model, "env": env_vars, "role": execution_role}
+    if sagemaker_session:
+        model_kwargs["sagemaker_session"] = sagemaker_session
+
+    model = DJLModel(**model_kwargs)
     return model
 
 
@@ -30,6 +42,17 @@ def deploy_model_to_endpoint(model, model_id: str, instance_type: str):
 def run_aws_deploy_job(config):
     """Runs the LMI deployment job by creating and deploying a model to SageMaker."""
     deploy_config = config.get("deploy", {})
+
+    profile = deploy_config.get("profile")
+    region = deploy_config.get("region")
+
+    boto3_session = create_aws_session(profile, region)
+    sagemaker_session = sagemaker.Session(boto_session=boto3_session)
+
+    account_id = boto3_session.client("sts").get_caller_identity()["Account"]
+
+    boto3.setup_default_session(profile_name=profile, region_name=region)
+
     if not deploy_config:
         raise KeyError("Invalid config, missing deploy section")
     model_config = config.get("model", {})
@@ -80,7 +103,9 @@ def run_aws_deploy_job(config):
     boto3.setup_default_session(region_name=region)
 
     # Register the model with LMI container
-    model = create_model_from_lmi_container(base_model, env_vars, role_arn)
+    model = create_model_from_lmi_container(
+        base_model, env_vars, role_arn, sagemaker_session=sagemaker_session
+    )
 
     # Deploy to endpoint
     predictor = deploy_model_to_endpoint(model, model_id, instance_type)
