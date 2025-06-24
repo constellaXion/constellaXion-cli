@@ -51,8 +51,6 @@ def run_aws_deploy_job(config):
 
     account_id = boto3_session.client("sts").get_caller_identity()["Account"]
 
-    boto3.setup_default_session(profile_name=profile, region_name=region)
-
     if not deploy_config:
         raise KeyError("Invalid config, missing deploy section")
     model_config = config.get("model", {})
@@ -100,7 +98,6 @@ def run_aws_deploy_job(config):
     if max_model_length:
         env_vars["OPTION_MAX_MODEL_LEN"] = str(max_model_length)
         env_vars["OPTION_MAX_SEQ_LEN"] = str(max_model_length)
-    boto3.setup_default_session(region_name=region)
 
     # Register the model with LMI container
     model = create_model_from_lmi_container(
