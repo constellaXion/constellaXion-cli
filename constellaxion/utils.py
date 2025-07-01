@@ -65,7 +65,7 @@ def get_model_map(alias: str):
     return data.get("model", {})
 
 
-def get_job(show=False):
+def get_job(show=False, fail_silently=False):
     """Load and optionally print the job configuration from job.json."""
     print(os.getcwd())
     if os.path.exists("job.json"):
@@ -76,9 +76,10 @@ def get_job(show=False):
             click.echo(json.dumps(config, indent=4))
         return config
     else:
-        click.echo(
-            click.style(
-                "Error: job.json not found. Run 'constellaxion init' first", fg="red"
+        if not fail_silently:
+            click.echo(
+                click.style(
+                    "Error: job.json not found. Run 'constellaxion init' first", fg="red"
+                )
             )
-        )
-        return None
+            return None
