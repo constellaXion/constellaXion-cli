@@ -5,7 +5,6 @@ import sagemaker
 from sagemaker.djl_inference.model import DJLModel
 
 from constellaxion.services.aws.session import create_aws_session
-from constellaxion.services.aws.utils import get_aws_account_id
 from constellaxion.utils import get_model_map
 
 
@@ -61,7 +60,6 @@ def run_aws_deploy_job(config):
     hf_token = model_config.get("hf_token", None)
     region = deploy_config.get("region", None)
     iam_role = deploy_config.get("iam_role", None)
-    account_id = get_aws_account_id()
     role_arn = f"arn:aws:iam::{account_id}:role/{iam_role}"
     # Get the model infra config from the constellaxion database
     model_map = get_model_map(base_model_alias)
