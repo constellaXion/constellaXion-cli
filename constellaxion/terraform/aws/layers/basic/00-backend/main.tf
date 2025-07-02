@@ -13,7 +13,6 @@ provider "aws" {
 
 
 resource "aws_s3_bucket" "terraform_state" {
-  # Use the bucket_name variable provided by the CLI.
   bucket = var.bucket_name
 
   lifecycle {
@@ -46,8 +45,7 @@ resource "aws_s3_bucket_public_access_block" "state_public_access" {
 }
 
 resource "aws_dynamodb_table" "terraform_locks" {
-  count = var.enable_dynamodb_locking ? 1 : 0
-  # The name is now deterministic based on the bucket name.
+  count        = var.enable_dynamodb_locking ? 1 : 0
   name         = "${var.bucket_name}-locks"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
