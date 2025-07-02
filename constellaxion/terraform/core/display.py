@@ -41,18 +41,18 @@ def print_resource_table(
         header_style="bold magenta"
     )
     
-    table.add_column("Resource Type", style="dim", width=40)
-    table.add_column("Name / Address", style="cyan")
-    table.add_column("Status", style="green")
+    table.add_column("Resource Type", style="dim", width=30, no_wrap=False)
+    table.add_column("Name / Address", style="cyan", min_width=20, no_wrap=False)  
+    table.add_column("Status", style="green", width=15)
     table.add_column("Source", style="dim", width=15)
     
     for resource in resources:
-        table.add_row(
-            resource.get("resource_type", "Unknown"),
-            resource.get("name", "Unknown"),
-            resource.get("status", "Unknown"),
-            resource.get("source", "Unknown")
-        )
+        resource_type = str(resource.get("resource_type", "Unknown"))
+        name = str(resource.get("name", "Unknown"))
+        status = str(resource.get("status", "Unknown"))
+        source = str(resource.get("source", "Unknown"))
+        
+        table.add_row(resource_type, name, status, source)
     
     console.print(table)
     console.print(f"\nTotal: {len(resources)} resources in {region}")

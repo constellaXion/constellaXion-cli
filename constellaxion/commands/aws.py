@@ -14,8 +14,8 @@ def aws():
     pass
 
 
-def _get_aws_config() -> tuple[str, Optional[str]]:
-    """Get AWS region and profile from job or prompt user."""
+def _get_aws_config(region_override: Optional[str] = None, profile_override: Optional[str] = None) -> tuple[str, Optional[str]]:
+    """Get AWS region and profile from job, CLI overrides, or prompt user."""
     config = get_job(show=False, fail_silently=True)
     profile = None
     region = None
@@ -25,6 +25,14 @@ def _get_aws_config() -> tuple[str, Optional[str]]:
         profile = deploy_config.get("profile")
         region = deploy_config.get("region")
         print_info(f"Using config from job.json (Profile: {profile or 'default'}, Region: {region})")
+    
+    if region_override:
+        region = region_override
+        print_info(f"Region overridden to: {region}")
+    
+    if profile_override:
+        profile = profile_override
+        print_info(f"Profile overridden to: {profile}")
     
     if not region:
         region = click.prompt("Please enter the AWS region")
@@ -109,11 +117,10 @@ def destroy(all: bool):
 def bootstrap(region: Optional[str], profile: Optional[str]):
     """Bootstrap foundational AWS infrastructure."""
     try:
-        if not region:
-            region, profile = _get_aws_config()
+        final_region, final_profile = _get_aws_config(region, profile)
         
         service = TerraformService()
-        result = service.bootstrap_infrastructure("aws", region, profile)
+        result = service.bootstrap_infrastructure("aws", final_region, final_profile)
         
         if result["success"]:
             print_success("AWS infrastructure bootstrapped successfully")

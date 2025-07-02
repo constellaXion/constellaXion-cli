@@ -8,105 +8,98 @@ from constellaxion.terraform.core.enums import CloudProvider
 class TerraformService:
     
     def bootstrap_infrastructure(self, provider: str, region: str, profile: str = None, **kwargs) -> Dict[str, Any]:
-        """Bootstrap cloud infrastructure.
-        
-        Args:
-            provider: Cloud provider ("aws" or "gcp")
-            region: Target region
-            profile: Optional profile name
-            **kwargs: Additional provider-specific options
+        """Bootstrap cloud infrastructure."""
+        try:
+            config = self._validate_and_create_config(provider, region, profile, **kwargs)
+            manager = TerraformManager(config)
+            result = manager.bootstrap()
             
-        Returns:
-            Dictionary with operation results
+            return {
+                "success": result.success,
+                "message": result.message,
+                "backend_config": result.get_backend_config(),
+                "error": result.error
+            }
+        except ValueError as e:
+            return self._create_error_response("bootstrap", provider, region, str(e))
+    
+    def destroy_infrastructure(self, provider: str, region: str, profile: str = None, **kwargs) -> Dict[str, Any]:
+        """Destroy all infrastructure."""
+        try:
+            config = self._validate_and_create_config(provider, region, profile, **kwargs)
+            manager = TerraformManager(config)
+            result = manager.destroy()
+            
+            return {
+                "success": result.success,
+                "message": result.message,
+                "destroyed_resources": result.get_destroyed_resources(),
+                "error": result.error
+            }
+        except ValueError as e:
+            return self._create_error_response("destroy", provider, region, str(e))
+    
+    def list_resources(self, provider: str, region: str, profile: str = None, force_clean: bool = False, **kwargs) -> Dict[str, Any]:
+        """List all managed resources."""
+        try:
+            config = self._validate_and_create_config(provider, region, profile, **kwargs)
+            manager = TerraformManager(config)
+            result = manager.list_resources(force_clean=force_clean)
+            
+            return {
+                "success": result.success,
+                "resources": result.get_resources(),
+                "total_count": len(result.get_resources()),
+                "provider": provider,
+                "region": region,
+                "error": result.error
+            }
+        except ValueError as e:
+            return self._create_error_response("list_resources", provider, region, str(e))
+    
+    def _validate_and_create_config(self, provider: str, region: str, profile: str = None, **kwargs) -> TerraformConfig:
+        """Validate provider and create configuration.
+        
+        Raises:
+            ValueError: If provider is invalid or config validation fails
         """
-        provider_enum = CloudProvider.AWS if provider == "aws" else CloudProvider.GCP
+        provider_enum = CloudProvider.from_string(provider)  # Validates provider
         config = TerraformConfig(
             provider=provider_enum,
             region=region,
             profile=profile,
-            project_id=kwargs.get("project_id")
+            project_id=kwargs.get("project_id"),
+            workspace_dir=kwargs.get("workspace_dir")
         )
         
         is_valid, errors = config.validate()
         if not is_valid:
-            return {
-                "success": False,
-                "message": "Configuration validation failed",
-                "error": "; ".join(errors)
-            }
-        
-        manager = TerraformManager(config)
-        result = manager.bootstrap()
-        
-        return {
-            "success": result.success,
-            "message": result.message,
-            "backend_config": result.get_backend_config(),
-            "error": result.error
-        }
-    
-    def destroy_infrastructure(self, provider: str, region: str, profile: str = None, **kwargs) -> Dict[str, Any]:
-        """Destroy all infrastructure.
-        
-        Args:
-            provider: Cloud provider ("aws" or "gcp")
-            region: Target region
-            profile: Optional profile name
-            **kwargs: Additional provider-specific options
+            raise ValueError("; ".join(errors))
             
-        Returns:
-            Dictionary with operation results
-        """
-        provider_enum = CloudProvider.AWS if provider == "aws" else CloudProvider.GCP
-        config = TerraformConfig(
-            provider=provider_enum,
-            region=region,
-            profile=profile,
-            project_id=kwargs.get("project_id")
-        )
-        
-        manager = TerraformManager(config)
-        result = manager.destroy()
-        
-        return {
-            "success": result.success,
-            "message": result.message,
-            "destroyed_resources": result.get_destroyed_resources(),
-            "error": result.error
-        }
+        return config
     
-    def list_resources(self, provider: str, region: str, profile: str = None, force_clean: bool = False, **kwargs) -> Dict[str, Any]:
-        """List all managed resources.
-        
-        Args:
-            provider: Cloud provider ("aws" or "gcp")
-            region: Target region
-            profile: Optional profile name
-            force_clean: If True, force clean workspace initialization
-            **kwargs: Additional provider-specific options
-            
-        Returns:
-            Dictionary with resources list
-        """
-        provider_enum = CloudProvider.AWS if provider == "aws" else CloudProvider.GCP
-        config = TerraformConfig(
-            provider=provider_enum,
-            region=region,
-            profile=profile,
-            project_id=kwargs.get("project_id")
-        )
-        
-        manager = TerraformManager(config)
-        result = manager.list_resources(force_clean=force_clean)
-        
-        return {
-            "success": result.success,
-            "resources": result.get_resources(),
-            "total_count": len(result.get_resources()),
-            "provider": provider,
-            "region": region,
-            "error": result.error
+    def _create_error_response(self, operation: str, provider: str, region: str, error: str) -> Dict[str, Any]:
+        """Create standardized error response."""
+        base_response = {
+            "success": False,
+            "message": f"Failed to {operation}",
+            "error": error
         }
+        
+        # Add operation-specific fields
+        if operation == "bootstrap":
+            base_response["backend_config"] = None
+        elif operation == "destroy":
+            base_response["destroyed_resources"] = []
+        elif operation == "list_resources":
+            base_response.update({
+                "resources": [],
+                "total_count": 0,
+                "provider": provider,
+                "region": region
+            })
+            
+        return base_response
 
 
 def bootstrap_aws(region: str, profile: str = None) -> Dict[str, Any]:
