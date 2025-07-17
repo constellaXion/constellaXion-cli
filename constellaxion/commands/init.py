@@ -14,8 +14,8 @@ from constellaxion.handlers.cloud_job import AWSDeployJob, GCPDeployJob
 from constellaxion.handlers.dataset import Dataset
 from constellaxion.handlers.model import Model
 from constellaxion.handlers.training import Training
-from constellaxion.services.gcp.iam import create_service_account
 from constellaxion.services.bootstrap import bootstrap_aws_infrastructure
+from constellaxion.services.gcp.iam import create_service_account
 
 console = Console()
 
@@ -145,7 +145,9 @@ def init_job(job_config, model: Model, dataset: Dataset, training: Training):
         try:
             backend_config = bootstrap_aws_infrastructure(profile, region)
             job = AWSDeployJob()
-            job.create_config(model, region, dataset, training, profile,backend_config=backend_config)  
+            job.create_config(
+                model, region, dataset, training, profile, backend_config=backend_config
+            )
         except ValueError as e:
             click.echo(f"Error: {str(e)}", err=True)
             raise click.Abort()

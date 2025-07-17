@@ -79,7 +79,8 @@ def get_job(show=False, fail_silently=False):
         if not fail_silently:
             click.echo(
                 click.style(
-                    "Error: job.json not found. Run 'constellaxion init' first", fg="red"
+                    "Error: job.json not found. Run 'constellaxion init' first",
+                    fg="red",
                 )
             )
             return None

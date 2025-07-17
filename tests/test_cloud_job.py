@@ -76,29 +76,33 @@ def test_gcp_deploy_job_deploy_with_invalid_config(_mock_run_gcp_deploy_job):
         GCPDeployJob.deploy({})
 
 
-@patch.dict(os.environ, {
-    'AWS_ACCESS_KEY_ID': 'fake_key',
-    'AWS_SECRET_ACCESS_KEY': 'fake_secret',
-    'AWS_DEFAULT_REGION': 'us-east-1'
-})
+@patch.dict(
+    os.environ,
+    {
+        "AWS_ACCESS_KEY_ID": "fake_key",
+        "AWS_SECRET_ACCESS_KEY": "fake_secret",
+        "AWS_DEFAULT_REGION": "us-east-1",
+    },
+)
 @patch("boto3.Session")
 @patch("constellaxion.services.aws.aws_deploy_job.run_aws_deploy_job")
-def test_aws_deploy_job_deploy_with_invalid_config(mock_run_aws_deploy_job, mock_session):
+def test_aws_deploy_job_deploy_with_invalid_config(
+    mock_run_aws_deploy_job, mock_session
+):
     """Test AWS deploy job deployment with invalid config."""
     # Create a mock session with a mock client method
     mock_session_instance = MagicMock()
     mock_sts_client = MagicMock()
     mock_sts_client.get_caller_identity.return_value = {
-        'UserId': 'fake_user_id',
-        'Account': '123456789012',
-        'Arn': 'arn:aws:iam::123456789012:user/fake-user'
+        "UserId": "fake_user_id",
+        "Account": "123456789012",
+        "Arn": "arn:aws:iam::123456789012:user/fake-user",
     }
     mock_session_instance.client.return_value = mock_sts_client
     mock_session.return_value = mock_session_instance
-    
+
     with pytest.raises(KeyError):
         AWSDeployJob.deploy({})
-
 
 
 @patch("constellaxion.services.gcp.prompt_gcp_model.send_gcp_prompt")

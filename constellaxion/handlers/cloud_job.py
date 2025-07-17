@@ -131,7 +131,14 @@ class AWSDeployJob(BaseCloudJob):
         return response
 
     @staticmethod
-    def create_config(model: Model, region: str, dataset: Dataset, training: Training, profile: str = None, backend_config: dict = None):
+    def create_config(
+        model: Model,
+        region: str,
+        dataset: Dataset,
+        training: Training,
+        profile: str = None,
+        backend_config: dict = None,
+    ):
         """Create a JSON configuration file from model and dataset attributes."""
         if not region:
             raise ValueError("region must be provided")
@@ -152,7 +159,7 @@ class AWSDeployJob(BaseCloudJob):
                 "experiments_dir": f"{model.id}/experiments",
                 "model_path": f"{model.id}/model",
                 "iam_role": "constellaxion-admin",
-                "terraform_backend": backend_config
+                "terraform_backend": backend_config,
             },
         }
         with open("job.json", "w", encoding="utf-8") as f:

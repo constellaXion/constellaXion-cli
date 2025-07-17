@@ -1,65 +1,86 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
-from constellaxion.terraform.manager import TerraformManager
 from constellaxion.terraform.core.config import TerraformConfig
 from constellaxion.terraform.core.enums import CloudProvider
+from constellaxion.terraform.manager import TerraformManager
 
 
 class TerraformService:
-    
-    def bootstrap_infrastructure(self, provider: str, region: str, profile: str = None, **kwargs) -> Dict[str, Any]:
+
+    def bootstrap_infrastructure(
+        self, provider: str, region: str, profile: str = None, **kwargs
+    ) -> Dict[str, Any]:
         """Bootstrap cloud infrastructure."""
         try:
-            config = self._validate_and_create_config(provider, region, profile, **kwargs)
+            config = self._validate_and_create_config(
+                provider, region, profile, **kwargs
+            )
             manager = TerraformManager(config)
             result = manager.bootstrap()
-            
+
             return {
                 "success": result.success,
                 "message": result.message,
                 "backend_config": result.get_backend_config(),
-                "error": result.error
+                "error": result.error,
             }
         except ValueError as e:
             return self._create_error_response("bootstrap", provider, region, str(e))
-    
-    def destroy_infrastructure(self, provider: str, region: str, profile: str = None, **kwargs) -> Dict[str, Any]:
+
+    def destroy_infrastructure(
+        self, provider: str, region: str, profile: str = None, **kwargs
+    ) -> Dict[str, Any]:
         """Destroy all infrastructure."""
         try:
-            config = self._validate_and_create_config(provider, region, profile, **kwargs)
+            config = self._validate_and_create_config(
+                provider, region, profile, **kwargs
+            )
             manager = TerraformManager(config)
             result = manager.destroy()
-            
+
             return {
                 "success": result.success,
                 "message": result.message,
                 "destroyed_resources": result.get_destroyed_resources(),
-                "error": result.error
+                "error": result.error,
             }
         except ValueError as e:
             return self._create_error_response("destroy", provider, region, str(e))
-    
-    def list_resources(self, provider: str, region: str, profile: str = None, force_clean: bool = False, **kwargs) -> Dict[str, Any]:
+
+    def list_resources(
+        self,
+        provider: str,
+        region: str,
+        profile: str = None,
+        force_clean: bool = False,
+        **kwargs,
+    ) -> Dict[str, Any]:
         """List all managed resources."""
         try:
-            config = self._validate_and_create_config(provider, region, profile, **kwargs)
+            config = self._validate_and_create_config(
+                provider, region, profile, **kwargs
+            )
             manager = TerraformManager(config)
             result = manager.list_resources(force_clean=force_clean)
-            
+
             return {
                 "success": result.success,
                 "resources": result.get_resources(),
                 "total_count": len(result.get_resources()),
                 "provider": provider,
                 "region": region,
-                "error": result.error
+                "error": result.error,
             }
         except ValueError as e:
-            return self._create_error_response("list_resources", provider, region, str(e))
-    
-    def _validate_and_create_config(self, provider: str, region: str, profile: str = None, **kwargs) -> TerraformConfig:
+            return self._create_error_response(
+                "list_resources", provider, region, str(e)
+            )
+
+    def _validate_and_create_config(
+        self, provider: str, region: str, profile: str = None, **kwargs
+    ) -> TerraformConfig:
         """Validate provider and create configuration.
-        
+
         Raises:
             ValueError: If provider is invalid or config validation fails
         """
@@ -69,36 +90,40 @@ class TerraformService:
             region=region,
             profile=profile,
             project_id=kwargs.get("project_id"),
-            workspace_dir=kwargs.get("workspace_dir")
+            workspace_dir=kwargs.get("workspace_dir"),
         )
-        
+
         is_valid, errors = config.validate()
         if not is_valid:
             raise ValueError("; ".join(errors))
-            
+
         return config
-    
-    def _create_error_response(self, operation: str, provider: str, region: str, error: str) -> Dict[str, Any]:
+
+    def _create_error_response(
+        self, operation: str, provider: str, region: str, error: str
+    ) -> Dict[str, Any]:
         """Create standardized error response."""
         base_response = {
             "success": False,
             "message": f"Failed to {operation}",
-            "error": error
+            "error": error,
         }
-        
+
         # Add operation-specific fields
         if operation == "bootstrap":
             base_response["backend_config"] = None
         elif operation == "destroy":
             base_response["destroyed_resources"] = []
         elif operation == "list_resources":
-            base_response.update({
-                "resources": [],
-                "total_count": 0,
-                "provider": provider,
-                "region": region
-            })
-            
+            base_response.update(
+                {
+                    "resources": [],
+                    "total_count": 0,
+                    "provider": provider,
+                    "region": region,
+                }
+            )
+
         return base_response
 
 
@@ -114,14 +139,16 @@ def destroy_aws(region: str, profile: str = None) -> Dict[str, Any]:
     return service.destroy_infrastructure("aws", region, profile)
 
 
-def list_aws_resources(region: str, profile: str = None, force_clean: bool = False) -> Dict[str, Any]:
+def list_aws_resources(
+    region: str, profile: str = None, force_clean: bool = False
+) -> Dict[str, Any]:
     """List AWS resources - convenience function.
-    
+
     Args:
         region: AWS region to list resources in
         profile: Optional AWS profile name
         force_clean: If True, force clean workspace initialization
-        
+
     Returns:
         Dictionary with resource listing results
     """
@@ -129,18 +156,14 @@ def list_aws_resources(region: str, profile: str = None, force_clean: bool = Fal
     return service.list_resources("aws", region, profile, force_clean=force_clean)
 
 
-def bootstrap_gcp(
-    region: str, 
-    project_id: str, 
-    profile: str = None
-) -> Dict[str, Any]:
+def bootstrap_gcp(region: str, project_id: str, profile: str = None) -> Dict[str, Any]:
     """Bootstrap GCP infrastructure - convenience function.
-    
+
     Args:
         region: GCP region to bootstrap in
         project_id: GCP project ID
         profile: Optional GCP profile name
-        
+
     Returns:
         Dictionary with bootstrap results
     """
@@ -149,6 +172,6 @@ def bootstrap_gcp(
         provider=CloudProvider.GCP,
         region=region,
         project_id=project_id,
-        profile=profile
+        profile=profile,
     )
     return service.bootstrap_infrastructure(config)

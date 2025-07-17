@@ -104,7 +104,7 @@ def create_aws_permissions(profile_name=None, region=None):
     session = create_aws_session(profile_name, region)
 
     try:
-        identity = session.client('sts').get_caller_identity()
+        identity = session.client("sts").get_caller_identity()
         print(f"Authenticated as: {identity['Arn']}")
         create_iam_role(session)
         print("IAM initialization complete.")

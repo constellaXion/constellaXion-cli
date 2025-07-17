@@ -13,6 +13,7 @@ setup(
     entry_points={
         "console_scripts": [
             "constellaxion=constellaxion.main:cli",
+            "cxn=constellaxion.main:cli",
         ],
     },
     author="Constellaxion Technologies, Inc.",
