@@ -1,98 +1,125 @@
-from google.cloud import aiplatform
-
+import subprocess
+import sys
+import tempfile
+import yaml
 from constellaxion.utils import get_model_map
 
+accelerator_type_map = {
+    "NVIDIA_L4": "nvidia-l4",
+    "NVIDIA_L4_8": "nvidia-l4",
+    "NVIDIA_L4_16": "nvidia-l4",
+    "NVIDIA_L4_32": "nvidia-l4",
+    "NVIDIA_L4_64": "nvidia-l4",
+}
 
-def create_model_from_custom_container(model_name: str, image_uri: str, env_vars: dict):
-    print("Creating model from custom container...")
-
-    # Define the container and model
-    model = aiplatform.Model.upload(
-        display_name=model_name,
-        serving_container_image_uri=image_uri,
-        serving_container_ports=[8080],  # Port your container exposes
-        # Optional, adjust if your container provides health checks
-        serving_container_health_route="/health",
-        # Optional, adjust if your container provides a prediction endpoint
-        serving_container_predict_route="/predict",
-        serving_container_environment_variables=env_vars,
-    )
-    print(f"Model created successfully: {model.resource_name}")
-    return model
-
-
-# Deploy the model to an endpoint
-
-
-def deploy_model_to_endpoint(
-    model,
-    model_id: str,
-    machine_type: str,
-    accelerator_type: str,
-    accelerator_count: int,
-    replica_count: int,
-    service_account: str,
+def deploy_cloud_run_service_gpu(
+    service_name: str,
+    image_uri: str,
+    region: str,
+    project_id: str,
+    env_vars: dict,
+    gpu_type: str,
+    gpu_memory: str,
+    cpu_cores: str,
+    gpu_count: str = "1",
+    allow_unauthenticated: bool = True,
+    service_account: str = None,
 ):
-    # Check if the endpoint exists, create it if not
-    endpoints = aiplatform.Endpoint.list(filter=f'display_name="{model_id}"')
-    if endpoints:
-        endpoint = endpoints[0]  # Use the first matching endpoint
-        print(f"Using existing endpoint: {endpoint.display_name}")
-    else:
-        # Create a new endpoint
-        endpoint = aiplatform.Endpoint.create(display_name=model_id)
-        print(f"Created new endpoint: {endpoint.display_name}")
+    """
+    Deploy a GPU-enabled Cloud Run service with specified GPU type, memory, CPU cores and count.
+    Uses gcloud run deploy to configure machine type and GPU settings. Environment variables are
+    passed via a temporary YAML file.
+    """
 
-    # Deploy the model to the endpoint
-    model.deploy(
-        endpoint=endpoint,
-        deployed_model_display_name=model_id,
-        traffic_split={"0": 100},  # Route all traffic to this model
-        accelerator_type=accelerator_type,
-        accelerator_count=accelerator_count,
-        machine_type=machine_type,
-        min_replica_count=replica_count,
-        max_replica_count=replica_count,
-        service_account=service_account,
-    )
+    # Convert environment variables into YAML format for env vars file
+    env_vars_yaml = {k: str(v) for k, v in env_vars.items()}
 
-    print(f"Model deployed to endpoint: {endpoint.resource_name}")
-    return endpoint.resource_name
+    # Write env vars YAML to a temp file
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as tmp:
+        yaml.dump(env_vars_yaml, tmp)
+        env_vars_yaml_path = tmp.name
+
+    # Deploy the service using gcloud beta
+    cmd = [
+        "gcloud", "run", "deploy", service_name,
+        "--image", image_uri,
+        "--platform", "managed",
+        "--allow-unauthenticated",
+        "--region", region,
+        "--project", project_id,
+        "--cpu", cpu_cores,
+        "--memory", gpu_memory,
+        "--timeout", "300s",
+        "--execution-environment", "gen2",
+        "--gpu", gpu_count,
+        "--gpu-type", gpu_type,
+        "--min-instances", "1",
+        "--max-instances", "1",
+        "--env-vars-file", env_vars_yaml_path,
+        "--no-gpu-zonal-redundancy",
+        "--service-account", service_account,
+    ]
+
+    print(f"Deploying GPU-backed Cloud Run service '{service_name}' with 32GB /tmp disk...")
+    try:
+        subprocess.run(cmd, check=True)
+        print(f"Service '{service_name}' deployed successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"Deployment failed: {e}")
+        sys.exit(1)
+
+    # Grant public (unauthenticated) access if required
+    if allow_unauthenticated:
+        print(f"Granting unauthenticated (public) access to '{service_name}'...")
+        try:
+            subprocess.run([
+                "gcloud", "beta", "run", "services", "add-iam-policy-binding", service_name,
+                "--region", region,
+                "--member", "allUsers",
+                "--role", "roles/run.invoker",
+                "--project", project_id
+            ], check=True)
+            print(f"Public access granted to '{service_name}'.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to grant public access: {e}")
 
 
 def run_serving_job(config):
-    project_id = config["deploy"]["project_id"]
-    model_id = config["model"]["model_id"]
-    location = config["deploy"]["location"]
-    base_model_id = config["model"]["base_model"]
-    bucket_name = config["deploy"]["bucket_name"]
-    model_path = config["deploy"]["model_path"]
-    service_account = config["deploy"]["service_account"]
-    model_map = get_model_map(base_model_id)
-    base_model = model_map[base_model_id]["base_model"]
-    infra_config = model_map[base_model_id]["gcp_infra"]
-    image_uri = infra_config["images"]["serve"]
-    machine_type = infra_config["machine_type"]
-    accelerator_type = infra_config["accelerator_type"]
-    accelerator_count = infra_config["accelerator_count"]
-    replica_count = infra_config["replica_count"]
+    deploy_config = config.get("deploy", {})
+    if not deploy_config:
+        raise KeyError("Invalid config, missing deploy section")
+    model_config = config.get("model", {})
+    if not model_config:
+        raise KeyError("Invalid config, missing model section")
+    base_model_alias = model_config.get("base_model")
+    model_map = get_model_map(base_model_alias)
+    infra_config = model_map.get("gcp_infra", {})
+    model_id = model_config.get("model_id")
+    image_uri = infra_config.get("images").get("finetuned")
+    accelerator_type = infra_config.get("accelerator_type")
+    accelerator_count = infra_config.get("accelerator_count")
+    cpu_cores = infra_config.get("cpu_cores", 8)
+    gpu_memory = infra_config.get("gpu_memory", "32Gi")
+    dtype = infra_config.get("dtype")
+    service_account = deploy_config.get("service_account")
+    region = deploy_config.get("region")  
+    project_id = deploy_config.get("project_id")
+    bucket_name = deploy_config.get("bucket_name")
+    # Environment variables
     env_vars = {
         "GCS_BUCKET_NAME": bucket_name,
-        "MODEL_PATH": model_path,
-        "BASE_MODEL": base_model,
+        "DTYPE": dtype,
+        "MODEL_NAME": model_id,
     }
-    # Initialize the Vertex AI SDK
-    aiplatform.init(project=project_id, location=location)
-    # Register a model
-    model = create_model_from_custom_container(model_id, image_uri, env_vars)
-    # Deploy model to endpoint
-    endpoint_path = deploy_model_to_endpoint(
-        model,
-        model_id,
-        machine_type,
-        accelerator_type,
-        accelerator_count,
-        replica_count,
-        service_account,
+    deploy_cloud_run_service_gpu(
+        service_name=model_id,
+        image_uri=image_uri,
+        region="europe-west4",
+        project_id=project_id,
+        env_vars=env_vars,
+        gpu_type=accelerator_type_map.get(accelerator_type),
+        gpu_count=str(accelerator_count),
+        gpu_memory=gpu_memory,
+        cpu_cores=str(cpu_cores),
+        service_account=service_account,
     )
-    return endpoint_path

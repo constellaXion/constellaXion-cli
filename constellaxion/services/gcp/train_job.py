@@ -52,12 +52,15 @@ def upload_data_to_gcp(config: dict):
     """
     client = storage.Client()
     bucket_name = config["deploy"]["bucket_name"]
-
+    region = config["deploy"]["region"]
+    project_id = config["deploy"]["project_id"]
     # Check if bucket exists
     bucket = client.bucket(bucket_name)
     if not bucket.exists():
         print(f"Bucket '{bucket_name}' does not exist. Creating it...")
-        bucket = client.create_bucket(bucket_name)
+        bucket = client.create_bucket(
+            bucket_or_name=bucket_name, location=region, project=project_id
+        )
         print(f"Bucket '{bucket_name}' created successfully.")
 
     # Upload training dataset

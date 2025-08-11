@@ -63,6 +63,7 @@ TRAIN_SET = f"gs://{GCS_BUCKET_NAME}/{args.train_set}"
 VAL_SET = f"gs://{GCS_BUCKET_NAME}/{args.val_set}"
 TEST_SET = f"gs://{GCS_BUCKET_NAME}/{args.test_set}"
 OUTPUT_DIR = f"/gcs/{GCS_BUCKET_NAME}/{EXPERIMENT_DIR}"
+SAVE_METHOD = "merged_16bit"
 
 
 def gcs_uri_to_fuse_path(gcs_uri: str) -> str:
@@ -254,8 +255,9 @@ def upload_directory_to_gcs(local_path, bucket_name, gcs_path):
 def save_model_tokenizer_locally(m, t, save_dir):
     """Save model and tokenizer locally"""
     os.makedirs(save_dir, exist_ok=True)
-    m.save_pretrained(save_dir)
-    t.save_pretrained(save_dir)
+    m.save_pretrained_merged(save_dir, t, save_method=SAVE_METHOD)
+    # m.save_pretrained(save_dir)
+    # t.save_pretrained(save_dir)
     print(f"Model and tokenizer saved locally to {save_dir}")
 
 
