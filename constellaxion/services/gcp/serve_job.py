@@ -2,15 +2,9 @@ import subprocess
 import sys
 import tempfile
 import yaml
+import json
 from constellaxion.utils import get_model_map
-
-accelerator_type_map = {
-    "NVIDIA_L4": "nvidia-l4",
-    "NVIDIA_L4_8": "nvidia-l4",
-    "NVIDIA_L4_16": "nvidia-l4",
-    "NVIDIA_L4_32": "nvidia-l4",
-    "NVIDIA_L4_64": "nvidia-l4",
-}
+from constellaxion.services.gcp.cloud_run import accelerator_type_map, ensure_region
 
 def deploy_cloud_run_service_gpu(
     service_name: str,
@@ -26,9 +20,10 @@ def deploy_cloud_run_service_gpu(
     service_account: str = None,
 ):
     """
-    Deploy a GPU-enabled Cloud Run service with specified GPU type, memory, CPU cores and count.
-    Uses gcloud run deploy to configure machine type and GPU settings. Environment variables are
-    passed via a temporary YAML file.
+    Deploy a GPU-enabled Cloud Run service with specifications
+    
+    Returns:
+        str: The service URL of the deployed Cloud Run service
     """
 
     # Convert environment variables into YAML format for env vars file
@@ -83,6 +78,31 @@ def deploy_cloud_run_service_gpu(
         except subprocess.CalledProcessError as e:
             print(f"Failed to grant public access: {e}")
 
+    # Extract the service URL
+    print(f"Extracting service URL for '{service_name}'...")
+    try:
+        result = subprocess.run([
+            "gcloud", "run", "services", "describe", service_name,
+            "--region", region,
+            "--project", project_id,
+            "--format", "json"
+        ], capture_output=True, text=True, check=True)
+        
+        service_info = json.loads(result.stdout)
+        service_url = service_info.get("status", {}).get("url")
+        
+        if service_url:
+            return service_url
+        else:
+            return None
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to extract service URL: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse service info: {e}")
+        return None
+
 
 def run_serving_job(config):
     deploy_config = config.get("deploy", {})
@@ -105,21 +125,31 @@ def run_serving_job(config):
     region = deploy_config.get("region")  
     project_id = deploy_config.get("project_id")
     bucket_name = deploy_config.get("bucket_name")
+
+    region = ensure_region(region)
+    
     # Environment variables
     env_vars = {
         "GCS_BUCKET_NAME": bucket_name,
         "DTYPE": dtype,
         "MODEL_NAME": model_id,
     }
-    deploy_cloud_run_service_gpu(
+    service_url = deploy_cloud_run_service_gpu(
         service_name=model_id,
         image_uri=image_uri,
-        region="europe-west4",
+        region=region,
         project_id=project_id,
         env_vars=env_vars,
-        gpu_type=accelerator_type_map.get(accelerator_type),
+        gpu_type=accelerator_type_map().get(accelerator_type),
         gpu_count=str(accelerator_count),
         gpu_memory=gpu_memory,
         cpu_cores=str(cpu_cores),
         service_account=service_account,
     )
+    
+    if service_url:
+        print(f"\n🎉 Deployment successful! Your service is available at: {service_url}")
+        return service_url
+    else:
+        print("\n⚠️  Deployment completed but could not retrieve service URL please check the logs above or your Cloud Run console")
+        return None

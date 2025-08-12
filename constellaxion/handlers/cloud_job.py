@@ -60,9 +60,8 @@ class GCPDeployJob(BaseCloudJob):
     @staticmethod
     def prompt(prompt, config):
         """Send prompt to model"""
-        endpoint_path = config["deploy"]["endpoint_path"]
-        region = config["deploy"]["region"]
-        response = send_gcp_prompt(prompt, endpoint_path, region)
+        endpoint_path = config.get("deploy", {}).get("endpoint_path")
+        response = send_gcp_prompt(prompt, endpoint_path)
         return response
 
     @staticmethod
