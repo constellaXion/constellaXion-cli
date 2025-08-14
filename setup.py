@@ -31,7 +31,7 @@ setup(
     package_data={
         "constellaxion": [
             "services/gcp/*.py",
-            "models/scripts/**/*.py",
+            "training/scripts/**/*.py",
             "ui/prompts/**",
         ]
     },

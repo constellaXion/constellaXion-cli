@@ -186,7 +186,7 @@ def run_training_job(config):
     val_set = dataset_config.get("val", {}).get("cloud", None)
     test_set = dataset_config.get("test", {}).get("cloud", None)
     script_path = pkg_resources.resource_filename(
-        "constellaxion.models.scripts.gcp", "lora.py"
+        "constellaxion.training.scripts.gcp", "lora.py"
     )
     model_map = get_model_map(base_model_alias)
     infra_config = model_map.get("gcp_infra", {})
@@ -209,12 +209,12 @@ def run_training_job(config):
         display_name=config["model"]["model_id"],
         script_path=script_path,
         # requirements=finetune_packages,
-        container_uri=infra_config["images"]["finetune"],
+        container_uri=infra_config.get("images").get("finetuning"),
         service_account=config["deploy"]["service_account"],
-        machine_type=infra_config["machine_type"],
-        accelerator_type=infra_config["accelerator_type"],
-        accelerator_count=infra_config["accelerator_count"],
-        replica_count=infra_config["replica_count"],
+        machine_type=infra_config.get("machine_type"),
+        accelerator_type=infra_config.get("accelerator_type"),
+        accelerator_count=infra_config.get("accelerator_count"),
+        replica_count=infra_config.get("replica_count"),
         experiment_name=experiment_name,
         args=[
             f"--epochs={epochs}",
@@ -232,5 +232,6 @@ def run_training_job(config):
             f"--project-id={project_id}",
             f"--model-id={model_id}",
             f"--experiment-name={experiment_name}",
+            f"--alias={base_model_alias}",
         ],
     )
