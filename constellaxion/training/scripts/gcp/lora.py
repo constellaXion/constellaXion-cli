@@ -8,7 +8,7 @@ import os
 # Must be first non-standard import!
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
-from constellaxion_utils.gcs.gcs_uploader import ModelManager
+from constellaxion_utils.gcp.tools import ModelManager, gcs_uri_to_fuse_path
 from datasets import Dataset
 from google.cloud import aiplatform, storage
 import pandas as pd
@@ -67,30 +67,6 @@ OUTPUT_DIR = f"/gcs/{GCS_BUCKET_NAME}/{EXPERIMENT_DIR}"
 MERGED_MODEL_DIR = f"/gcs/{GCS_BUCKET_NAME}/{MODEL_ID}/model"
 SAVE_METHOD = "merged_16bit"
 
-# todo: move to model manager in constellaxion-utils
-def gcs_uri_to_fuse_path(gcs_uri: str) -> str:
-    """
-    Convert a gs:// URI to its FUSE-mounted /gcs/ path.
-
-    Args:
-        gcs_uri (str): A GCS path in the form gs://bucket-name/path/to/file
-
-    Returns:
-        str: The corresponding /gcs/bucket-name/path/to/file path
-
-    Raises:
-        ValueError: If the input is not a valid gs:// URI
-    """
-    if not gcs_uri.startswith("gs://"):
-        raise ValueError(f"Invalid GCS URI: {gcs_uri}. Must start with 'gs://'")
-
-    # Remove 'gs://' and split into bucket and path
-    parts = gcs_uri[5:].split("/", 1)
-    bucket = parts[0]
-    path = parts[1] if len(parts) > 1 else ""
-
-    return f"/gcs/{bucket}/{path}" if path else f"/gcs/{bucket}"
-
 
 # Dataset
 train_df = pd.read_csv(TRAIN_SET)
@@ -104,7 +80,7 @@ dataset = {
 }
 
 model_manager = ModelManager()
-checkpoint = model_manager.prepare_checkpoint(
+checkpoint = model_manager.get_latest_checkpoint(
     GCS_BUCKET_NAME, EXPERIMENT_DIR, CHECKPOINT_DIR
 )
 
@@ -141,13 +117,19 @@ model = FastLanguageModel.get_peft_model(
         "up_proj",
         "down_proj",
     ],
-    loftq_config=peft_kwargs.get("loftq_config", None),  # todo: check for the default value
+    loftq_config=peft_kwargs.get("loftq_config", None), 
 )
 
 model.print_trainable_parameters()
 
 
 EOS_TOKEN = tokenizer.eos_token
+
+prompt_template = """
+{prompt}
+## Response:
+{response}
+"""
 
 
 def format_prompts(example):
@@ -156,12 +138,7 @@ def format_prompts(example):
     for i in range(len(example["prompt"])):
         text = (
             inspect.cleandoc(
-                f"""
-## Prompt:
-{example["prompt"][i]}
-## Response:
-{example["response"][i]}
-"""
+                prompt_template.format(prompt=example["prompt"][i], response=example["response"][i])
             )
             + EOS_TOKEN
         )
