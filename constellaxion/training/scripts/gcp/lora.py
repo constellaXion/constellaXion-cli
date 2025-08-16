@@ -7,10 +7,11 @@ import os
 # Must be first non-standard import!
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
-from constellaxion_utils.gcs.gcs_uploader import ModelManager
+from constellaxion_utils.gcp.tools import ModelManager, gcs_uri_to_fuse_path
 from datasets import Dataset
 from google.cloud import aiplatform, storage
 import pandas as pd
+import requests
 from transformers import TrainingArguments
 from transformers.integrations import TensorBoardCallback
 from trl import SFTTrainer
@@ -40,13 +41,13 @@ parser.add_argument("--project-id", type=str, required=True, help="Project ID")
 parser.add_argument(
     "--experiment-name", type=str, required=True, help="Experiment name"
 )
+parser.add_argument("--alias", type=str, required=True, help="Alias")
 args = parser.parse_args()
-
-SEED = 42
 
 LOCAL_MODEL_DIR = "./models"
 CHECKPOINT_DIR = "./checkpoints"
 MODEL_NAME = args.base_model
+ALIAS = args.alias
 GCS_BUCKET_NAME = args.bucket_name
 GCS_MODEL_PATH = args.model_path
 LOCATION = args.location
@@ -63,33 +64,9 @@ TRAIN_SET = f"gs://{GCS_BUCKET_NAME}/{args.train_set}"
 VAL_SET = f"gs://{GCS_BUCKET_NAME}/{args.val_set}"
 TEST_SET = f"gs://{GCS_BUCKET_NAME}/{args.test_set}"
 OUTPUT_DIR = f"/gcs/{GCS_BUCKET_NAME}/{EXPERIMENT_DIR}"
+MERGED_MODEL_DIR = f"/gcs/{GCS_BUCKET_NAME}/{MODEL_ID}/model"
+SAVE_METHOD = "merged_16bit"
 
-
-def gcs_uri_to_fuse_path(gcs_uri: str) -> str:
-    """
-    Convert a gs:// URI to its FUSE-mounted /gcs/ path.
-
-    Args:
-        gcs_uri (str): A GCS path in the form gs://bucket-name/path/to/file
-
-    Returns:
-        str: The corresponding /gcs/bucket-name/path/to/file path
-
-    Raises:
-        ValueError: If the input is not a valid gs:// URI
-    """
-    if not gcs_uri.startswith("gs://"):
-        raise ValueError(f"Invalid GCS URI: {gcs_uri}. Must start with 'gs://'")
-
-    # Remove 'gs://' and split into bucket and path
-    parts = gcs_uri[5:].split("/", 1)
-    bucket = parts[0]
-    path = parts[1] if len(parts) > 1 else ""
-
-    return f"/gcs/{bucket}/{path}" if path else f"/gcs/{bucket}"
-
-
-tensorboard_path = gcs_uri_to_fuse_path(tensorboard_path)
 
 # Dataset
 train_df = pd.read_csv(TRAIN_SET)
@@ -103,7 +80,7 @@ dataset = {
 }
 
 model_manager = ModelManager()
-checkpoint = model_manager.prepare_checkpoint(
+checkpoint = model_manager.get_latest_checkpoint(
     GCS_BUCKET_NAME, EXPERIMENT_DIR, CHECKPOINT_DIR
 )
 
@@ -111,6 +88,13 @@ if checkpoint:
     MODEL_PATH = checkpoint
 else:
     MODEL_PATH = MODEL_NAME
+
+# Get model configs for the specified model
+url = f"https://us-central1-constellaxion.cloudfunctions.net/getModelConfigsByAlias?alias={ALIAS}"
+response = requests.get(url)
+data = response.json()
+train_kwargs = data.get("args").get("train_kwargs", {})
+peft_kwargs = data.get("args").get("peft_kwargs", {})
 
 
 # Initialize Unsloth FastLanguageModel
@@ -123,7 +107,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 
 model = FastLanguageModel.get_peft_model(
     model,
-    r=32,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+    **peft_kwargs,
     target_modules=[
         "q_proj",
         "k_proj",
@@ -133,25 +117,19 @@ model = FastLanguageModel.get_peft_model(
         "up_proj",
         "down_proj",
     ],
-    lora_alpha=32,
-    lora_dropout=0,  # Currently only supports dropout = 0
-    bias="none",  # Currently only supports bias = "none"
-    use_gradient_checkpointing=False,  # @@@ IF YOU GET OUT OF MEMORY - set to True @@@
-    random_state=3407,
-    use_rslora=False,  # We support rank stabilized LoRA
-    loftq_config=None,  # And LoftQ
+    loftq_config=peft_kwargs.get("loftq_config", None),
 )
-
-# Prepare model with LoRA
-# model = get_peft_model(model, lora_config)
-
-# if checkpoint:
-#     model.load_state_dict(PeftModel.from_pretrained(model, MODEL_PATH).state_dict())
 
 model.print_trainable_parameters()
 
 
 EOS_TOKEN = tokenizer.eos_token
+
+prompt_template = """
+{prompt}
+## Response:
+{response}
+"""
 
 
 def format_prompts(example):
@@ -160,12 +138,9 @@ def format_prompts(example):
     for i in range(len(example["prompt"])):
         text = (
             inspect.cleandoc(
-                f"""
-## Prompt:
-{example["prompt"][i]}
-## Response:
-{example["response"][i]}
-"""
+                prompt_template.format(
+                    prompt=example["prompt"][i], response=example["response"][i]
+                )
             )
             + EOS_TOKEN
         )
@@ -189,23 +164,19 @@ aiplatform.init(
     experiment_description="constellaXion LoRA fine-tuning experiment",
 )
 
+tensorboard_path = gcs_uri_to_fuse_path(tensorboard_path)
+
 # Train Model
 train_args = TrainingArguments(
+    **train_kwargs,
     per_device_train_batch_size=int(BATCH_SIZE),
-    gradient_accumulation_steps=4,
-    warmup_ratio=0.1,
     num_train_epochs=int(EPOCHS),
-    learning_rate=2e-5,
     eval_strategy="steps",
     fp16=not is_bfloat16_supported(),
     bf16=is_bfloat16_supported(),
     logging_steps=100,
     save_strategy="steps",
     save_steps=0.2,
-    optim="adamw_8bit",
-    weight_decay=0.1,
-    lr_scheduler_type="linear",
-    seed=3407,
     output_dir=OUTPUT_DIR,
     report_to=["tensorboard"],
     logging_dir=tensorboard_path,
@@ -251,21 +222,12 @@ def upload_directory_to_gcs(local_path, bucket_name, gcs_path):
             )
 
 
-def save_model_tokenizer_locally(m, t, save_dir):
+def save_merged_model(m, t, save_dir):
     """Save model and tokenizer locally"""
     os.makedirs(save_dir, exist_ok=True)
-    m.save_pretrained(save_dir)
-    t.save_pretrained(save_dir)
-    print(f"Model and tokenizer saved locally to {save_dir}")
+    m.save_pretrained_merged(save_dir, t, save_method=SAVE_METHOD)
+    print(f"Merged model saved to {save_dir}")
 
 
-def save_and_upload_model(m, t):
-    """Save and upload model"""
-    # Save locally
-    save_model_tokenizer_locally(m, t, LOCAL_MODEL_DIR)
-
-    # Upload to GCS
-    upload_directory_to_gcs(LOCAL_MODEL_DIR, GCS_BUCKET_NAME, GCS_MODEL_PATH)
-
-
-save_and_upload_model(trainer.model, tokenizer)
+# Save merged model
+save_merged_model(trainer.model, tokenizer, MERGED_MODEL_DIR)

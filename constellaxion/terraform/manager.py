@@ -257,7 +257,7 @@ class TerraformManager:
                 ["init", "-upgrade=false"], workspace_path, env_vars
             )
             if not init_result.success:
-                print_info(f"Quick sync failed, doing full initialization...")
+                print_info("Quick sync failed, doing full initialization...")
                 self._prepare_clean_workspace(workspace_path, layer, backend_config)
                 init_result = self.executor.execute(["init"], workspace_path, env_vars)
                 if not init_result.success:

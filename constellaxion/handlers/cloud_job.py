@@ -58,11 +58,12 @@ class GCPDeployJob(BaseCloudJob):
             json.dump(config, f, indent=4)
 
     @staticmethod
-    def prompt(prompt, config):
+    def prompt(prompt, config, region, is_foundation_model):
         """Send prompt to model"""
-        endpoint_path = config["deploy"]["endpoint_path"]
-        region = config["deploy"]["region"]
-        response = send_gcp_prompt(prompt, endpoint_path, region)
+        if not region or not prompt or not config:
+            raise ValueError("region, prompt, and config must be provided")
+        endpoint_path = config.get("deploy", {}).get("endpoint_path")
+        response = send_gcp_prompt(prompt, endpoint_path, region, is_foundation_model)
         return response
 
     @staticmethod
@@ -125,8 +126,12 @@ class AWSDeployJob(BaseCloudJob):
     @staticmethod
     def prompt(prompt, config):
         """Send prompt to model"""
-        endpoint_path = config["deploy"]["endpoint_path"]
-        region = config["deploy"]["region"]
+        if not config:
+            raise ValueError("config must be provided")
+        endpoint_path = config.get("deploy", {}).get("endpoint_path")
+        region = config.get("deploy", {}).get("region")
+        if not endpoint_path or not region:
+            raise ValueError("endpoint_path and region must be provided")
         response = send_aws_prompt(prompt, endpoint_path, region)
         return response
 

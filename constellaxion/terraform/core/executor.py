@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-import subprocess
+import subprocess  # nosec: B404 - Used for legitimate Terraform CLI operations with proper validation
 from typing import Any, Dict, List, Optional
 
 import click
@@ -16,6 +16,47 @@ class TerraformExecutor:
         """Initialize terraform command executor."""
         self.binary = binary
 
+    def _validate_command(self, command: List[str]) -> None:
+        """Validate terraform command to prevent command injection."""
+        # Only allow valid terraform subcommands
+        valid_commands = {
+            "init", "apply", "destroy", "refresh", "output", "state", "plan", "validate",
+            "workspace", "import", "taint", "untaint", "force-unlock", "console"
+        }
+        
+        # Check if the first command is a valid terraform subcommand
+        if command and command[0] not in valid_commands:
+            raise ValueError(f"Invalid terraform command: {command[0]}. Allowed commands: {', '.join(valid_commands)}")
+        
+        # Validate that no command contains shell metacharacters
+        for arg in command:
+            if any(char in arg for char in [';', '&', '|', '>', '<', '`', '$', '(', ')', '{', '}', '[', ']', '\\', '"', "'"]):
+                raise ValueError(f"Command argument contains invalid characters: {arg}")
+
+    def _validate_working_dir(self, working_dir: Path) -> None:
+        """Validate working directory path for security."""
+        # Ensure working directory is absolute and doesn't contain path traversal
+        working_dir = working_dir.resolve()
+        if ".." in str(working_dir) or working_dir.is_symlink():
+            raise ValueError(f"Invalid working directory path: {working_dir}")
+        
+        # Ensure the directory exists and is accessible
+        if not working_dir.exists():
+            raise FileNotFoundError(f"Working directory does not exist: {working_dir}")
+        if not working_dir.is_dir():
+            raise ValueError(f"Working directory is not a directory: {working_dir}")
+
+    def _validate_env_vars(self, env_vars: Optional[Dict[str, str]]) -> None:
+        """Validate environment variables for security."""
+        if env_vars:
+            for key, value in env_vars.items():
+                # Validate key names (no shell metacharacters)
+                if any(char in key for char in [';', '&', '|', '>', '<', '`', '$', '(', ')', '{', '}', '[', ']', '\\', '"', "'"]):
+                    raise ValueError(f"Environment variable key contains invalid characters: {key}")
+                # Validate values (no shell metacharacters)
+                if any(char in value for char in [';', '&', '|', '>', '<', '`', '$', '(', ')', '{', '}', '[', ']', '\\', '"', "'"]):
+                    raise ValueError(f"Environment variable value contains invalid characters: {value}")
+
     def execute(
         self,
         command: List[str],
@@ -25,9 +66,11 @@ class TerraformExecutor:
         show_output: bool = True,
     ) -> TerraformResult:
         """Execute a terraform command."""
-        if not working_dir.exists():
-            raise FileNotFoundError(f"Working directory does not exist: {working_dir}")
-
+        # Validate all inputs before execution
+        self._validate_working_dir(working_dir)
+        self._validate_command(command)
+        self._validate_env_vars(env_vars)
+        
         full_command = [str(self.binary.get_path())] + command
 
         # Prepare environment
@@ -147,6 +190,7 @@ class TerraformExecutor:
     ) -> TerraformResult:
         """Execute command and capture output."""
         try:
+            # Command is validated above to prevent injection attacks
             process = subprocess.run(
                 command,
                 cwd=str(cwd),
@@ -156,7 +200,8 @@ class TerraformExecutor:
                 check=False,
                 encoding="utf-8",
                 timeout=1800,
-            )
+                shell=False,  # Explicitly disable shell to prevent shell injection
+            )  # nosec: B603 - Command validated above
 
             return TerraformResult(
                 success=process.returncode == 0,
@@ -186,6 +231,7 @@ class TerraformExecutor:
     ) -> TerraformResult:
         """Execute command with streaming output."""
         try:
+            # Command is validated above to prevent injection attacks
             process = subprocess.Popen(
                 command,
                 cwd=str(cwd),
@@ -194,7 +240,8 @@ class TerraformExecutor:
                 stderr=subprocess.STDOUT,
                 text=True,
                 encoding="utf-8",
-            )
+                shell=False,  # Explicitly disable shell to prevent shell injection
+            )  # nosec: B603 - Command validated above
 
             stdout_lines = []
             if process.stdout:

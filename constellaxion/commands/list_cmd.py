@@ -1,7 +1,8 @@
 """List commands"""
 
-import click
 import webbrowser
+
+import click
 
 
 @click.group(name="list")

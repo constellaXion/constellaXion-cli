@@ -16,9 +16,11 @@ def prompt_model(prompt: str):
     config = get_job()
     cloud_providers = {"aws": AWSDeployJob, "gcp": GCPDeployJob}
     provider = config.get("deploy", {}).get("provider", None)
+    region = config.get("deploy", {}).get("region", None)
+    is_foundation_model = True if config.get("training") is None else False
     if provider in cloud_providers:
         job = cloud_providers[provider]()
-        return job.prompt(prompt, config)
+        return job.prompt(prompt, config, region, is_foundation_model)
     return None
 
 

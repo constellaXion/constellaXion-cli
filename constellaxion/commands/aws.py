@@ -155,7 +155,7 @@ def status():
         region, profile = _get_aws_config()
         service = TerraformService()
 
-        click.echo(f"\n📊 AWS Infrastructure Status")
+        click.echo("\n📊 AWS Infrastructure Status")
         click.echo(f"Region: {region}")
         click.echo(f"Profile: {profile or 'default'}")
 
