@@ -1,6 +1,5 @@
 """AWS LMI deployment module for deploying models to SageMaker endpoints using Large Model Inference."""
 
-import boto3
 import sagemaker
 from sagemaker.djl_inference.model import DJLModel
 

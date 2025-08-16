@@ -1,5 +1,3 @@
-import pytest
-
 from constellaxion.terraform.core.config import TerraformConfig
 from constellaxion.terraform.core.enums import CloudProvider
 
@@ -15,8 +13,8 @@ class TestConfigValidation:
 
         is_valid, errors = config.validate()
 
-        assert is_valid is True
-        assert len(errors) == 0
+        assert is_valid is True  # nosec: B101
+        assert len(errors) == 0  # nosec: B101
 
     def test_valid_gcp_config(self):
         """Valid GCP configuration passes validation."""
@@ -28,8 +26,8 @@ class TestConfigValidation:
 
         is_valid, errors = config.validate()
 
-        assert is_valid is True
-        assert len(errors) == 0
+        assert is_valid is True  # nosec: B101
+        assert len(errors) == 0  # nosec: B101
 
     def test_empty_region_fails(self):
         """Empty region fails validation."""
@@ -37,8 +35,8 @@ class TestConfigValidation:
 
         is_valid, errors = config.validate()
 
-        assert is_valid is False
-        assert "Region is required" in errors
+        assert is_valid is False  # nosec: B101
+        assert "Region is required" in errors  # nosec: B101
 
     def test_whitespace_region_fails(self):
         """Whitespace-only region fails validation."""
@@ -46,8 +44,8 @@ class TestConfigValidation:
 
         is_valid, errors = config.validate()
 
-        assert is_valid is False
-        assert "Region is required" in errors
+        assert is_valid is False  # nosec: B101
+        assert "Region is required" in errors  # nosec: B101
 
     def test_gcp_missing_project_id_fails(self):
         """GCP config without project_id fails validation."""
@@ -55,8 +53,8 @@ class TestConfigValidation:
 
         is_valid, errors = config.validate()
 
-        assert is_valid is False
-        assert "project_id is required for GCP" in errors
+        assert is_valid is False  # nosec: B101
+        assert "project_id is required for GCP" in errors  # nosec: B101
 
     def test_gcp_with_empty_project_id_fails(self):
         """GCP config with empty project_id fails validation."""
@@ -66,8 +64,8 @@ class TestConfigValidation:
 
         is_valid, errors = config.validate()
 
-        assert is_valid is False
-        assert "project_id is required for GCP" in errors
+        assert is_valid is False  # nosec: B101
+        assert "project_id is required for GCP" in errors  # nosec: B101
 
     def test_multiple_validation_errors(self):
         """Multiple validation errors are collected."""
@@ -79,10 +77,10 @@ class TestConfigValidation:
 
         is_valid, errors = config.validate()
 
-        assert is_valid is False
-        assert len(errors) == 2
-        assert "Region is required" in errors
-        assert "project_id is required for GCP" in errors
+        assert is_valid is False  # nosec: B101
+        assert len(errors) == 2  # nosec: B101
+        assert "Region is required" in errors  # nosec: B101
+        assert "project_id is required for GCP" in errors  # nosec: B101
 
 
 class TestConfigSerialization:
@@ -105,7 +103,7 @@ class TestConfigSerialization:
             "profile": "test-profile",
             "workspace_dir": "/custom/workspace",
         }
-        assert result == expected
+        assert result == expected  # nosec: B101
 
     def test_gcp_to_dict(self):
         """GCP config serializes correctly to dictionary."""
@@ -122,7 +120,7 @@ class TestConfigSerialization:
             "region": "us-central1",
             "project_id": "test-project-123",
         }
-        assert result == expected
+        assert result == expected  # nosec: B101
 
     def test_from_dict_aws(self):
         """AWS config deserializes correctly from dictionary."""
@@ -130,10 +128,10 @@ class TestConfigSerialization:
 
         config = TerraformConfig.from_dict(data)
 
-        assert config.provider == CloudProvider.AWS
-        assert config.region == "us-west-2"
-        assert config.profile == "prod-profile"
-        assert config.project_id is None
+        assert config.provider == CloudProvider.AWS  # nosec: B101
+        assert config.region == "us-west-2"  # nosec: B101
+        assert config.profile == "prod-profile"  # nosec: B101
+        assert config.project_id is None  # nosec: B101
 
     def test_from_dict_gcp(self):
         """GCP config deserializes correctly from dictionary."""
@@ -145,10 +143,10 @@ class TestConfigSerialization:
 
         config = TerraformConfig.from_dict(data)
 
-        assert config.provider == CloudProvider.GCP
-        assert config.region == "europe-west1"
-        assert config.project_id == "my-gcp-project"
-        assert config.profile is None
+        assert config.provider == CloudProvider.GCP  # nosec: B101
+        assert config.region == "europe-west1"  # nosec: B101
+        assert config.project_id == "my-gcp-project"  # nosec: B101
+        assert config.profile is None  # nosec: B101
 
     def test_roundtrip_serialization(self):
         """Config survives roundtrip serialization."""
@@ -163,7 +161,7 @@ class TestConfigSerialization:
         data = original.to_dict()
         restored = TerraformConfig.from_dict(data)
 
-        assert restored.provider == original.provider
-        assert restored.region == original.region
-        assert restored.profile == original.profile
-        assert restored.workspace_dir == original.workspace_dir
+        assert restored.provider == original.provider  # nosec: B101
+        assert restored.region == original.region  # nosec: B101
+        assert restored.profile == original.profile  # nosec: B101
+        assert restored.workspace_dir == original.workspace_dir  # nosec: B101

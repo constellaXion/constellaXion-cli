@@ -1,5 +1,3 @@
-import pytest
-
 from constellaxion.services.terraform_service import TerraformService
 
 
@@ -13,7 +11,7 @@ class TestServiceResponseStructure:
 
         required_keys = ["success", "message", "backend_config", "error"]
         for key in required_keys:
-            assert key in result, f"Missing required key: {key}"
+            assert key in result, f"Missing required key: {key}"  # nosec: B101
 
     def test_destroy_response_keys(self):
         """Destroy response contains all required keys."""
@@ -22,7 +20,7 @@ class TestServiceResponseStructure:
 
         required_keys = ["success", "message", "destroyed_resources", "error"]
         for key in required_keys:
-            assert key in result, f"Missing required key: {key}"
+            assert key in result, f"Missing required key: {key}"  # nosec: B101
 
     def test_list_resources_response_keys(self):
         """List resources response contains all required keys."""
@@ -38,7 +36,7 @@ class TestServiceResponseStructure:
             "error",
         ]
         for key in required_keys:
-            assert key in result, f"Missing required key: {key}"
+            assert key in result, f"Missing required key: {key}"  # nosec: B101
 
 
 class TestServiceValidation:
@@ -49,33 +47,33 @@ class TestServiceValidation:
         service = TerraformService()
         result = service.bootstrap_infrastructure("aws", "us-east-1", "test-profile")
 
-        assert isinstance(result, dict)
-        assert "success" in result
-        assert "message" in result
+        assert isinstance(result, dict)  # nosec: B101
+        assert "success" in result  # nosec: B101
+        assert "message" in result  # nosec: B101
 
     def test_gcp_missing_project_id(self):
         """GCP validation fails when project_id is missing."""
         service = TerraformService()
         result = service.bootstrap_infrastructure("gcp", "us-central1")
 
-        assert result["success"] is False
-        assert "project_id is required for GCP" in result["error"]
+        assert result["success"] is False  # nosec: B101
+        assert "project_id is required for GCP" in result["error"]  # nosec: B101
 
     def test_empty_region_validation(self):
         """Validation fails with empty region."""
         service = TerraformService()
         result = service.bootstrap_infrastructure("aws", "")
 
-        assert result["success"] is False
-        assert "Region is required" in result["error"]
+        assert result["success"] is False  # nosec: B101
+        assert "Region is required" in result["error"]  # nosec: B101
 
     def test_whitespace_region_validation(self):
         """Validation fails with whitespace-only region."""
         service = TerraformService()
         result = service.bootstrap_infrastructure("aws", "   ")
 
-        assert result["success"] is False
-        assert "Region is required" in result["error"]
+        assert result["success"] is False  # nosec: B101
+        assert "Region is required" in result["error"]  # nosec: B101
 
     def test_list_resources_count_consistency(self):
         """List resources count matches resources length."""
@@ -83,9 +81,9 @@ class TestServiceValidation:
         result = service.list_resources("aws", "us-east-1")
 
         if result["success"]:
-            assert result["total_count"] == len(result["resources"])
-        assert result["provider"] == "aws"
-        assert result["region"] == "us-east-1"
+            assert result["total_count"] == len(result["resources"])  # nosec: B101
+        assert result["provider"] == "aws"  # nosec: B101
+        assert result["region"] == "us-east-1"  # nosec: B101
 
 
 class TestServiceErrorHandling:
@@ -96,21 +94,21 @@ class TestServiceErrorHandling:
         service = TerraformService()
         result = service.bootstrap_infrastructure("invalid-provider", "us-east-1")
 
-        assert result["success"] is False
-        assert result["error"] is not None
+        assert result["success"] is False  # nosec: B101
+        assert result["error"] is not None  # nosec: B101
 
     def test_destroy_handles_invalid_provider(self):
         """Destroy handles invalid provider gracefully."""
         service = TerraformService()
         result = service.destroy_infrastructure("invalid-provider", "us-east-1")
 
-        assert result["success"] is False
-        assert result["error"] is not None
+        assert result["success"] is False  # nosec: B101
+        assert result["error"] is not None  # nosec: B101
 
     def test_list_resources_handles_invalid_provider(self):
         """List resources handles invalid provider gracefully."""
         service = TerraformService()
         result = service.list_resources("invalid-provider", "us-east-1")
 
-        assert result["success"] is False
-        assert result["error"] is not None
+        assert result["success"] is False  # nosec: B101
+        assert result["error"] is not None  # nosec: B101

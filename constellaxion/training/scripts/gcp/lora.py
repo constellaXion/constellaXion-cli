@@ -2,7 +2,6 @@
 
 import argparse
 import inspect
-import requests
 import os
 
 # Must be first non-standard import!
@@ -12,6 +11,7 @@ from constellaxion_utils.gcp.tools import ModelManager, gcs_uri_to_fuse_path
 from datasets import Dataset
 from google.cloud import aiplatform, storage
 import pandas as pd
+import requests
 from transformers import TrainingArguments
 from transformers.integrations import TensorBoardCallback
 from trl import SFTTrainer
@@ -106,7 +106,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 
 model = FastLanguageModel.get_peft_model(
-    model, 
+    model,
     **peft_kwargs,
     target_modules=[
         "q_proj",
@@ -117,7 +117,7 @@ model = FastLanguageModel.get_peft_model(
         "up_proj",
         "down_proj",
     ],
-    loftq_config=peft_kwargs.get("loftq_config", None), 
+    loftq_config=peft_kwargs.get("loftq_config", None),
 )
 
 model.print_trainable_parameters()
@@ -138,7 +138,9 @@ def format_prompts(example):
     for i in range(len(example["prompt"])):
         text = (
             inspect.cleandoc(
-                prompt_template.format(prompt=example["prompt"][i], response=example["response"][i])
+                prompt_template.format(
+                    prompt=example["prompt"][i], response=example["response"][i]
+                )
             )
             + EOS_TOKEN
         )
@@ -225,6 +227,7 @@ def save_merged_model(m, t, save_dir):
     os.makedirs(save_dir, exist_ok=True)
     m.save_pretrained_merged(save_dir, t, save_method=SAVE_METHOD)
     print(f"Merged model saved to {save_dir}")
+
 
 # Save merged model
 save_merged_model(trainer.model, tokenizer, MERGED_MODEL_DIR)

@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import sys
-from typing import Iterable, Sequence
+from typing import Sequence
+
 import click
+
 
 def accelerator_type_map():
     return {
@@ -10,14 +13,16 @@ def accelerator_type_map():
         "NVIDIA_H100_80GB": "nvidia-h100-80gb",
     }
 
+
 allowed_gpu_regions = [
     "asia-southeast1",
     "asia-south1",
     "europe-west1",
     "europe-west4",
     "us-central1",
-    "us-east4"
+    "us-east4",
 ]
+
 
 def ensure_region(region: str | None) -> str:
     """
@@ -30,17 +35,22 @@ def ensure_region(region: str | None) -> str:
         raise click.UsageError("No allowed regions configured.")
     if region in allowed:
         return region  # already valid
-    click.secho(f"⚠️ Your selected region is not available for GPU serving with Cloud Run. Please select a region from the available options:", fg="blue", bold=True)
+    click.secho(
+        "⚠️ Your selected region is not available for GPU serving with Cloud Run. Please select a region from the available options:",
+        fg="blue",
+        bold=True,
+    )
     # Try full-screen-ish interactive select first (arrow keys + numbers)
     if sys.stdin.isatty() and sys.stdout.isatty():
         try:
             import questionary  # built on prompt_toolkit
+
             # Number each item so number shortcuts are obvious, and enable shortcuts.
             numbered = [f"{i+1}. {r}" for i, r in enumerate(allowed)]
             sel = questionary.select(
-                f"(↑/↓ to navigate, numbers 1–9 to jump, Enter to confirm)",
+                "(↑/↓ to navigate, numbers 1–9 to jump, Enter to confirm)",
                 choices=numbered,
-                use_shortcuts=True,   # 1–9 work as quick selectors
+                use_shortcuts=True,  # 1–9 work as quick selectors
                 qmark=">",
                 pointer="➤",
                 instruction="",
