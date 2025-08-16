@@ -109,11 +109,11 @@ def test_aws_deploy_job_deploy_with_invalid_config(
 def test_gcp_deploy_job_prompt_with_invalid_config(_mock_send_gcp_prompt):
     """Test GCP deploy job prompt with invalid config."""
     with pytest.raises(KeyError):
-        GCPDeployJob.prompt("Test prompt", {})
+        GCPDeployJob.prompt("Test prompt", {}, "us-central1", False)
 
 
 @patch("constellaxion.services.aws.prompt_aws_model.send_aws_prompt")
 def test_aws_deploy_job_prompt_with_invalid_config(_mock_send_aws_prompt):
     """Test AWS deploy job prompt with invalid config."""
     with pytest.raises(KeyError):
-        AWSDeployJob.prompt("Test prompt", {})
+        AWSDeployJob.prompt("Test prompt", {}, "us-east-1")
