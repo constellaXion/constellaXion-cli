@@ -116,4 +116,4 @@ def test_gcp_deploy_job_prompt_with_invalid_config(_mock_send_gcp_prompt):
 def test_aws_deploy_job_prompt_with_invalid_config(_mock_send_aws_prompt):
     """Test AWS deploy job prompt with invalid config."""
     with pytest.raises(ValueError):
-        AWSDeployJob.prompt("Test prompt", {}, "us-east-1")
+        AWSDeployJob.prompt("Test prompt", {})
