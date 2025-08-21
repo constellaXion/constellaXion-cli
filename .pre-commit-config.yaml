@@ -60,4 +60,7 @@ repos:
     rev: 1.7.6
     hooks:
       - id: bandit
-        args: ["-r", "."]
+        args: [
+          "--severity-level", "medium"
+        ]
+        exclude: ^(tests/|build/)

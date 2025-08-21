@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+import os
+import tempfile
+
+>>>>>>> 02bfa28 (Remove pytest)
 from constellaxion.terraform.core.config import TerraformConfig
 from constellaxion.terraform.core.enums import CloudProvider
 
@@ -154,7 +160,7 @@ class TestConfigSerialization:
             provider=CloudProvider.AWS,
             region="ap-southeast-1",
             profile="staging",
-            workspace_dir="/tmp/custom",
+            workspace_dir=os.path.join(tempfile.gettempdir(), "custom"),
         )
 
         # Serialize and deserialize
