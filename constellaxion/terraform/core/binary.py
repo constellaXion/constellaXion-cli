@@ -114,7 +114,7 @@ class TerraformBinary:
 
         # Make executable on Unix systems
         if sys.platform != "win32":
-            os.chmod(self._binary_path, 0o755)
+            os.chmod(self._binary_path, 0o755)  # nosec B103
 
         print("Terraform download complete.")
 
