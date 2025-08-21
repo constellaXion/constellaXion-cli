@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-=======
 import os
 import tempfile
 
->>>>>>> 02bfa28 (Remove pytest)
 from constellaxion.terraform.core.config import TerraformConfig
 from constellaxion.terraform.core.enums import CloudProvider
 
